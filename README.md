@@ -1,8 +1,14 @@
-# pytest cache directory #
+# TestRail Buddy
 
-This directory contains data from the pytest's cache plugin,
-which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+A web API for viewing and editing TestRail test cases.
+Ported from an internal Tkinter desktop app into a deployable Python service.
 
-**Do not** commit this to version control.
+## What it does
+- Browse TestRail projects, suites, and sections
+- View and edit test case fields
+- Bulk assign sequential Test Case IDs to a section
+- Fix test names (replace spaces with underscores, fill blanks from title)
+- Find cases with missing or thin content
+- Export cases to CSV
 
-See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+## To run locally
