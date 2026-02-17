@@ -1,28 +1,21 @@
-# Next Steps
-
 ## Where we left off
-The foundation is built and running. The API is live locally and the repo is on GitHub.
+- React frontend built with Vite, running on port 5173
+- FastAPI backend running on port 8000
+- Login page connects to TestRail and shows project list
+- Both pushed to GitHub
 
 ## To run locally
-```
-cd "Root Directory"
-.venv\Scripts\activate
-uvicorn app.main:app --reload --port 8000
-```
-Then open http://localhost:8000/docs
+Terminal 1 (backend):
+cd to repo root, activate .venv, then:
+    python -m uvicorn app.main:app --reload --port 8000
 
-## To run tests
-```
-pytest
-```
+Terminal 2 (frontend):
+cd frontend, then:
+    npm run dev
 
-## Immediate next steps
-- [ ] Transfer repo to work GitHub account
-- [ ] Add GitHub Actions CI (run tests automatically on every push)
-- [ ] Build a front end to replace the Tkinter UI
-- [ ] Add authentication middleware so credentials aren't passed per request
-
-## Longer term
-- [ ] Lock down test coverage thresholds
-- [ ] Get it deployed with the team's help (Kubernetes)
-- [ ] Document the API properly for other team members
+## Next steps
+- [ ] Add React Router for navigation
+- [ ] Click project → show suites/sections
+- [ ] Click section → show cases
+- [ ] Case edit page
+- [ ] Bulk tools pages
