@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      READ_ONLY_MODE: "false"
+      SKIP_AUTH_VALIDATION: "false"
+      ENABLE_REQUEST_LOGGING: "true"
+      ALLOWED_ORIGINS: '["http://localhost:3000"]'
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
