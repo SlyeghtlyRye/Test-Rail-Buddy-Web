@@ -5,7 +5,7 @@ The foundation is built and running. The API is live locally and the repo is on 
 
 ## To run locally
 ```
-cd "C:\Users\rybut\source\repos\Test Rail Buddy Web"
+cd "Root Directory"
 .venv\Scripts\activate
 uvicorn app.main:app --reload --port 8000
 ```
