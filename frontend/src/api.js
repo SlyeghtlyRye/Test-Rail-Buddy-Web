@@ -29,3 +29,8 @@ export const getCase = (credentials, caseId) =>
     ...credentials,
     project_id: 0,
   });
+
+export const createSection = (credentials, projectId, name, suiteId, parentId) =>
+  axios.post(`${BASE_URL}/api/projects/${projectId}/sections/create`, credentials, {
+    params: { name, suite_id: suiteId, parent_id: parentId },
+  });

@@ -49,3 +49,8 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Prevent text selection while resizing */
+.no-select {
+  user-select: none;
+}

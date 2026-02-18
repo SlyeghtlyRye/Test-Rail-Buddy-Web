@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProjects, getSuites, getSections, getCases, getCase } from "../api";
 import { useAuth } from "../AuthContext";
+import ToolsPanel from "../components/ToolsPanel";
 
 function stripHtml(text) {
   if (!text) return "";
@@ -37,6 +38,11 @@ export default function ProjectsPage() {
   const [caseLoading, setCaseLoading] = useState(false);
   const isResizing = useRef(false);
   const isResizingMiddle = useRef(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [loadingSections, setLoadingSections] = useState({});
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
+
 
   useEffect(() => {
     if (!credentials) {
@@ -46,14 +52,17 @@ export default function ProjectsPage() {
     loadProjects();
   }, []);
 
-  const handleMouseDown = () => {
+  const handleMouseDown = (e) => {
+    e.preventDefault();
     isResizing.current = true;
+    document.body.style.userSelect = "none";
     const onMouseMove = (e) => {
       if (!isResizing.current) return;
       setPanelWidth(Math.min(600, Math.max(150, e.clientX)));
     };
     const onMouseUp = () => {
       isResizing.current = false;
+      document.body.style.userSelect = "";
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
@@ -61,15 +70,20 @@ export default function ProjectsPage() {
     document.addEventListener("mouseup", onMouseUp);
   };
 
-  const handleMiddleMouseDown = () => {
+  const handleMiddleMouseDown = (e) => {
+    e.preventDefault();
     isResizingMiddle.current = true;
+    document.body.style.userSelect = "none";
+    const startX = e.clientX;
+    const startWidth = middleWidth;
     const onMouseMove = (e) => {
       if (!isResizingMiddle.current) return;
-      const newWidth = e.clientX - panelWidth;
-      setMiddleWidth(Math.min(900, Math.max(200, newWidth)));
+      const delta = e.clientX - startX;
+      setMiddleWidth(Math.min(900, Math.max(200, startWidth + delta)));
     };
     const onMouseUp = () => {
       isResizingMiddle.current = false;
+      document.body.style.userSelect = "";
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
@@ -129,14 +143,18 @@ export default function ProjectsPage() {
     setLoading(false);
   };
 
+
   const toggleSection = async (section) => {
     const isExpanded = expandedSections[section.id];
     if (isExpanded) {
       setExpandedSections((prev) => ({ ...prev, [section.id]: false }));
+      setSelectedSection(section);
       return;
     }
     setExpandedSections((prev) => ({ ...prev, [section.id]: true }));
+    setSelectedSection(section);
     if (!cases[section.id]) {
+      setLoadingSections((prev) => ({ ...prev, [section.id]: true }));
       try {
         const res = await getCases(
           credentials,
@@ -148,75 +166,111 @@ export default function ProjectsPage() {
       } catch (err) {
         console.error("Failed to load cases", err);
       }
+      setLoadingSections((prev) => ({ ...prev, [section.id]: false }));
     }
   };
 
-    const handleCaseClick = async (c) => {
+  const handleCaseClick = async (c, section) => {
+    setSelectedCaseId(c.id);
+    setSelectedSection(section);
     setCaseLoading(true);
     setSelectedCase(null);
     try {
-        const res = await getCase(credentials, c.id);
-        setSelectedCase(res.data);
+      const res = await getCase(credentials, c.id);
+      setSelectedCase(res.data);
     } catch (err) {
-        console.error("Failed to load case", err);
+      console.error("Failed to load case", err);
     }
     setCaseLoading(false);
-    };
+  };
+
+
+
+
   const rootSections = sections.filter((s) => !s.parent_id);
   const childSections = (parentId) =>
     sections.filter((s) => s.parent_id === parentId);
 
-  const renderSection = (section, depth = 0) => (
-    <div key={section.id}>
-      <div
-        style={{ ...styles.sectionRow, paddingLeft: `${20 + depth * 20}px` }}
-        onClick={() => toggleSection(section)}
-      >
-        <span style={styles.sectionIcon}>
-          {expandedSections[section.id] ? "▼" : "▶"}
-        </span>
-        <span style={styles.sectionName}>{section.name}</span>
-      </div>
-      {expandedSections[section.id] && (
-        <div>
-          {childSections(section.id).map((child) =>
-            renderSection(child, depth + 1)
-          )}
-        {(cases[section.id] || []).map((c) => (
+  const renderSection = (section, depth = 0) => {
+    const isLight = ["#f8fafc", "#fafaf9", "#f0fdf4"].includes(
+      getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()
+    );
+
+    return (
+      <div key={section.id}>
         <div
-            key={c.id}
-            style={{ ...styles.caseRow, paddingLeft: `${40 + depth * 20}px`, cursor: "pointer" }}
-            onClick={(e) => {
-            e.stopPropagation();
-            handleCaseClick(c);
-            }}
+          style={{
+            ...styles.sectionRow,
+            paddingLeft: `${20 + depth * 20}px`,
+            backgroundColor: selectedSection?.id === section.id
+              ? (isLight ? "#bfdbfe" : "#1e3a5f")
+              : "transparent",
+          }}
+          onClick={() => toggleSection(section)}
         >
-            <span style={{
-            display: "inline-block",
-            width: "10px",
-            height: "12px",
-            border: "1px solid #64748b",
-            borderRadius: "1px",
-            flexShrink: 0
-            }} />
-            <span style={styles.caseName}>
-            {c.custom_tc_test_case_id ? `[${c.custom_tc_test_case_id}] ` : ""}
-            {c.title}
-            </span>
+          <span style={styles.sectionIcon}>
+            {expandedSections[section.id] ? "▼" : "▶"}
+          </span>
+          <span style={styles.sectionName}>{section.name}</span>
         </div>
-        ))}
-        </div>
-      )}
-    </div>
-  );
+        {expandedSections[section.id] && (
+          <div>
+            {childSections(section.id).map((child) =>
+              renderSection(child, depth + 1)
+            )}
+            {loadingSections[section.id] && (
+              <p style={{ ...styles.loading, paddingLeft: `${40 + depth * 20}px` }}>
+                Loading cases...
+              </p>
+            )}
+            {(cases[section.id] || []).map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  ...styles.caseRow,
+                  paddingLeft: `${40 + depth * 20}px`,
+                  cursor: "pointer",
+                  backgroundColor: selectedCaseId === c.id
+                    ? (isLight ? "#bfdbfe" : "#172554")
+                    : "transparent",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCaseClick(c, section);
+                }}
+              >
+                <span style={{
+                  display: "inline-block",
+                  width: "10px",
+                  height: "12px",
+                  border: "1px solid #64748b",
+                  borderRadius: "1px",
+                  flexShrink: 0
+                }} />
+                <span style={styles.caseName}>
+                  {c.custom_tc_test_case_id ? `[${c.custom_tc_test_case_id}] ` : ""}
+                  {c.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>TestRail Buddy</h1>
-        <button style={styles.logoutBtn} onClick={() => { logout(); navigate("/"); }}>
-          Logout
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button style={styles.toolsBtn} onClick={() => setToolsOpen(true)}>
+            Tools
+          </button>
+          <button style={styles.logoutBtn} onClick={() => { logout(); navigate("/"); }}>
+            Logout
+          </button>
+        </div>
       </div>
 
       <div style={styles.content}>
@@ -250,7 +304,8 @@ export default function ProjectsPage() {
                     key={s.id}
                     style={{
                         ...styles.suiteItem,
-                        backgroundColor: selectedSuite?.id === s.id ? "#1d4ed8" : "#1e293b",
+                        backgroundColor: selectedSuite?.id === s.id ? "var(--accent)" : "var(--bg-panel)",
+
                     }}
                     onClick={() => handleSuiteClick(s)}
                     >
@@ -303,7 +358,7 @@ export default function ProjectsPage() {
         {/* RIGHT COLLAPSED TAB */}
         {rightCollapsed && (
           <div style={styles.collapsedTab} onClick={() => setRightCollapsed(false)}>
-            <span style={styles.collapsedLabel}>◀ Detail</span>
+            <span style={styles.collapsedLabel}>▶ Detail</span>
           </div>
         )}
 
@@ -312,7 +367,7 @@ export default function ProjectsPage() {
           <div style={styles.rightPanel}>
             <div style={styles.panelHeader}>
               <span style={styles.label}>Case Detail</span>
-              <button style={styles.collapseBtn} onClick={() => setRightCollapsed(true)}>▶</button>
+              <button style={styles.collapseBtn} onClick={() => setRightCollapsed(true)}>◀</button>
             </div>
 
             {caseLoading && <p style={styles.loading}>Loading case...</p>}
@@ -373,30 +428,47 @@ export default function ProjectsPage() {
         )}
 
       </div>
+
+      {toolsOpen && (
+        <ToolsPanel
+          onClose={() => setToolsOpen(false)}
+          credentials={credentials}
+          selectedProject={selectedProject}
+          selectedSuite={selectedSuite}
+          selectedSection={selectedSection}
+          sections={sections}
+        />
+      )}
+
     </div>
   );
 }
 
 const styles = {
   container: {
-    height: "100vh", backgroundColor: "#0f172a",
+    height: "100vh", backgroundColor: "var(--bg)",
     fontFamily: "sans-serif", display: "flex",
     flexDirection: "column", overflow: "hidden", width: "100%",
   },
   header: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
-    padding: "16px 24px", borderBottom: "1px solid #1e293b",
+    padding: "16px 24px", borderBottom: "1px solid var(--border)",
+    backgroundColor: "var(--bg)",
   },
-  title: { color: "#f8fafc", fontSize: "1.5rem", margin: 0 },
+  title: { color: "var(--text)", fontSize: "1.5rem", margin: 0 },
   logoutBtn: {
     padding: "8px 16px", borderRadius: "6px", border: "none",
-    backgroundColor: "#334155", color: "#f8fafc", cursor: "pointer", fontSize: "0.9rem",
+    backgroundColor: "var(--bg-panel)", color: "var(--text)", cursor: "pointer", fontSize: "0.9rem",
+  },
+  toolsBtn: {
+    padding: "8px 16px", borderRadius: "6px", border: "none",
+    backgroundColor: "var(--accent)", color: "#fff", cursor: "pointer", fontSize: "0.9rem",
   },
   content: { display: "flex", flex: 1, overflow: "hidden", width: "100%" },
   panelOuter: {
     position: "relative", display: "flex", flexShrink: 0,
-    borderRight: "1px solid #1e293b", minWidth: "150px",
-    backgroundColor: "#0f172a",
+    borderRight: "1px solid var(--border)", minWidth: "150px",
+    backgroundColor: "var(--bg)",
   },
   panelInner: {
     flex: 1, overflowY: "auto", padding: "20px",
@@ -404,69 +476,68 @@ const styles = {
   },
   rightPanel: {
     flex: 1, padding: "20px", overflowY: "auto",
-    backgroundColor: "#0f172a", position: "relative",
-    minWidth: "150px", borderLeft: "1px solid #1e293b",
+    backgroundColor: "var(--bg)", position: "relative",
+    minWidth: "150px", borderLeft: "1px solid var(--border)",
   },
   resizeHandle: {
     position: "absolute", right: 0, top: 0, bottom: 0,
     width: "4px", cursor: "col-resize",
-    backgroundColor: "#1e293b",
-    zIndex: 10,
+    backgroundColor: "var(--border)", zIndex: 10,
   },
   panelHeader: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     marginBottom: "10px",
   },
   collapseBtn: {
-    background: "none", border: "none", color: "#94a3b8",
+    background: "none", border: "none", color: "var(--text-muted)",
     cursor: "pointer", fontSize: "0.85rem", padding: "2px 6px",
   },
   collapsedTab: {
-    width: "28px", backgroundColor: "#1e293b", borderRight: "1px solid #334155",
+    width: "28px", backgroundColor: "var(--bg-panel)", borderRight: "1px solid var(--border)",
     display: "flex", alignItems: "center", justifyContent: "center",
     cursor: "pointer", flexShrink: 0,
   },
   collapsedLabel: {
-    color: "#94a3b8", fontSize: "0.7rem", writingMode: "vertical-rl",
+    color: "var(--text-muted)", fontSize: "0.7rem", writingMode: "vertical-rl",
     textOrientation: "mixed", letterSpacing: "0.05em",
   },
-  label: { color: "#94a3b8", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" },
+  label: { color: "var(--text-muted)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" },
   select: {
-    padding: "10px", borderRadius: "6px", border: "1px solid #334155",
-    backgroundColor: "#1e293b", color: "#f8fafc", fontSize: "0.95rem", cursor: "pointer",
+    padding: "10px", borderRadius: "6px", border: "1px solid var(--border)",
+    backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.95rem", cursor: "pointer",
   },
   suiteItem: {
-    padding: "10px 12px", borderRadius: "6px", color: "#f8fafc",
+    padding: "10px 12px", borderRadius: "6px", color: "var(--text)",
     fontSize: "0.9rem", cursor: "pointer", marginBottom: "4px",
     display: "block", width: "100%", boxSizing: "border-box",
   },
-  tree: { backgroundColor: "#0f172a" },
+  tree: { backgroundColor: "var(--bg)" },
   sectionRow: {
     display: "flex", alignItems: "center", gap: "8px",
     padding: "8px 12px", cursor: "pointer", borderRadius: "6px",
-    color: "#e2e8f0", fontSize: "0.95rem",
+    color: "var(--text)", fontSize: "0.95rem",
   },
   sectionIcon: { fontSize: "1rem" },
   sectionName: { fontWeight: "500" },
   caseRow: {
     display: "flex", alignItems: "center", gap: "8px",
-    padding: "6px 12px", color: "#94a3b8", fontSize: "0.88rem",
+    padding: "6px 12px", color: "var(--text-muted)", fontSize: "0.88rem",
   },
   caseIcon: { fontSize: "0.9rem" },
   caseName: {},
-  loading: { color: "#94a3b8" },
-  hint: { color: "#475569", fontSize: "0.95rem", marginTop: "40px", textAlign: "center" },
+  loading: { color: "var(--text-muted)" },
+  hint: { color: "var(--text-dim)", fontSize: "0.95rem", marginTop: "40px", textAlign: "center" },
   caseDetail: { display: "flex", flexDirection: "column", gap: "16px" },
-  caseTitle: { color: "#f8fafc", fontSize: "1.1rem", marginBottom: "8px" },
+  caseTitle: { color: "var(--text)", fontSize: "1.1rem", marginBottom: "8px" },
   caseField: {
     display: "flex", flexDirection: "column", gap: "4px",
-    padding: "10px", backgroundColor: "#1e293b", borderRadius: "6px",
+    padding: "10px", backgroundColor: "var(--bg-panel)", borderRadius: "6px",
   },
   caseBlock: {
     display: "flex", flexDirection: "column", gap: "8px",
-    padding: "10px", backgroundColor: "#1e293b", borderRadius: "6px",
+    padding: "10px", backgroundColor: "var(--bg-panel)", borderRadius: "6px",
   },
-  fieldLabel: { color: "#64748b", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
-  fieldValue: { color: "#f8fafc", fontSize: "0.95rem" },
-  blockText: { color: "#e2e8f0", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
+  fieldLabel: { color: "var(--text-dim)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
+  fieldValue: { color: "var(--text)", fontSize: "0.95rem" },
+  blockText: { color: "var(--text)", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
 };
