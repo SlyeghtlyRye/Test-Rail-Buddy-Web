@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import AppStructure from "./AppStructure";
-
+import DependencyMap from "./DependencyMap";
 const BASE_URL = "http://localhost:8000";
 
 const VERSION = {
@@ -45,7 +45,7 @@ export default function Settings({ credentials }) {
   const [apiStatus, setApiStatus] = useState(null);
   const [apiLoading, setApiLoading] = useState(false);
   const [showStructure, setShowStructure] = useState(false);
-
+  const [showMap, setShowMap] = useState(false);
 
   const applyTheme = (t) => {
     setSelectedTheme(t.id);
@@ -210,6 +210,9 @@ export default function Settings({ credentials }) {
             <button style={styles.btn} onClick={() => setShowStructure(true)}>
             Open App Structure
             </button>
+            <button style={styles.btn} onClick={() => setShowMap(true)}>
+            Open Dependency Map
+            </button>
         </div>
         )}
 
@@ -234,25 +237,25 @@ export default function Settings({ credentials }) {
         )}
 
 
-        {showStructure && (
+        {showMap && (
         <div style={{
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: "#0a0f1e", zIndex: 200,
-            display: "flex", flexDirection: "column",
+            zIndex: 200, display: "flex", flexDirection: "column",
         }}>
             <div style={{
             padding: "12px 20px", borderBottom: "1px solid #1e293b",
             display: "flex", justifyContent: "flex-end",
+            backgroundColor: "#0a0f1e",
             }}>
             <button
                 style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "1rem" }}
-                onClick={() => setShowStructure(false)}
+                onClick={() => setShowMap(false)}
             >
                 ✕ Close
             </button>
             </div>
-            <div style={{ flex: 1, overflow: "auto", transform: "scale(1.25)", transformOrigin: "top left", width: "78%" }}>
-            <AppStructure />
+            <div style={{ flex: 1, overflow: "hidden" }}>
+            <DependencyMap />
             </div>
         </div>
         )}
