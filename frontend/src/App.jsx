@@ -19,6 +19,10 @@ export default function App() {
       root.style.setProperty("--text", t.text);
       root.style.setProperty("--text-muted", t.muted);
       root.style.setProperty("--text-dim", t.dim);
+      root.style.setProperty("--highlight", t.highlight || t.accent + "44");
+
+
+
     }
   }, []);
 

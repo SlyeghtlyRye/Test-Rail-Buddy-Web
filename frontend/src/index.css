@@ -21,6 +21,15 @@ html, body, #root {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --bg: #0f172a;
+  --bg-panel: #0f172a;
+  --border: #1e293b;
+  --panel-item: #1e293b;
+  --accent: #3b82f6;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #475569;
+  --highlight: #1e3a5f;
 }
 
 button {

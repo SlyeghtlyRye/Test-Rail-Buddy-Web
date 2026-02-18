@@ -190,12 +190,7 @@ export default function ProjectsPage() {
   const rootSections = sections.filter((s) => !s.parent_id);
   const childSections = (parentId) =>
     sections.filter((s) => s.parent_id === parentId);
-
   const renderSection = (section, depth = 0) => {
-    const isLight = ["#f8fafc", "#fafaf9", "#f0fdf4"].includes(
-      getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()
-    );
-
     return (
       <div key={section.id}>
         <div
@@ -203,7 +198,7 @@ export default function ProjectsPage() {
             ...styles.sectionRow,
             paddingLeft: `${20 + depth * 20}px`,
             backgroundColor: selectedSection?.id === section.id
-              ? (isLight ? "#bfdbfe" : "#1e3a5f")
+              ? "var(--highlight)"
               : "transparent",
           }}
           onClick={() => toggleSection(section)}
@@ -231,7 +226,7 @@ export default function ProjectsPage() {
                   paddingLeft: `${40 + depth * 20}px`,
                   cursor: "pointer",
                   backgroundColor: selectedCaseId === c.id
-                    ? (isLight ? "#bfdbfe" : "#172554")
+                    ? "var(--highlight)"
                     : "transparent",
                 }}
                 onClick={(e) => {
@@ -258,6 +253,8 @@ export default function ProjectsPage() {
       </div>
     );
   };
+
+
 
   return (
     <div style={styles.container}>
