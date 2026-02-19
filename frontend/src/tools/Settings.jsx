@@ -42,7 +42,11 @@
     const [showStructure, setShowStructure] = useState(false);
     const [showMap, setShowMap] = useState(false);
 
-    useEffect(() => { loadSavedTheme(); }, []);
+    useEffect(() => {
+        loadSavedTheme();
+        const saved = localStorage.getItem("theme");
+        if (saved) setSelectedTheme(JSON.parse(saved).id);
+    }, []);
 
     const testApi = async () => {
         setApiLoading(true);
