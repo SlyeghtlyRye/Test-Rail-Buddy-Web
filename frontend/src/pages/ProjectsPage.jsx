@@ -287,7 +287,7 @@ export default function ProjectsPage() {
                 <span style={styles.label}>Project</span>
                 <button style={styles.collapseBtn} onClick={() => setLeftCollapsed(true)}>◀</button>
             </div>
-            <select style={styles.select} onChange={handleProjectChange} defaultValue="">
+            <select style={styles.select} onChange={handleProjectChange} value={selectedProject?.id || ""}>
                 <option value="" disabled>Select a project...</option>
                 {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
