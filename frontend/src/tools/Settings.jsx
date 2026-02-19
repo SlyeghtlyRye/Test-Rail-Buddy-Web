@@ -100,7 +100,7 @@
                 {THEMES.map((t) => (
                     <div
                     key={t.id}
-                    onClick={() => applyTheme(t)}
+                    onClick={() => { applyTheme(t); setSelectedTheme(t.id); }}
                     style={{
                         ...styles.themeCard,
                         border: selectedTheme === t.id ? `2px solid var(--accent)` : `1px solid var(--border)`,
@@ -234,7 +234,6 @@
                         </div>
                     </div>
                     )}
-
 
             {showMap && (
             <div style={{
