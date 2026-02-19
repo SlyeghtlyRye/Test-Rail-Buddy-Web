@@ -27,48 +27,23 @@ const NODES = [
 ];
 
 const EDGES = [
-  { from: "browser", to: "app" },
-  { from: "app", to: "login" },
-  { from: "app", to: "projects" },
-  { from: "app", to: "authctx" },
-  { from: "projects", to: "toolspanel" },
-  { from: "projects", to: "api" },
-  { from: "projects", to: "indexcss" },
-  { from: "login", to: "api" },
-  { from: "toolspanel", to: "createcase" },
-  { from: "toolspanel", to: "createsection" },
-  { from: "toolspanel", to: "export" },
-  { from: "toolspanel", to: "bulkids" },
-  { from: "toolspanel", to: "fixnames" },
-  { from: "toolspanel", to: "convert" },
-  { from: "toolspanel", to: "settings" },
-  { from: "toolspanel", to: "appstructure" },
-  { from: "toolspanel", to: "depmap" },
-  { from: "createcase", to: "api" },
-  { from: "createsection", to: "api" },
-  { from: "export", to: "api" },
-  { from: "bulkids", to: "api" },
-  { from: "fixnames", to: "api" },
-  { from: "convert", to: "api" },
-  { from: "authctx", to: "api" },
-  { from: "api", to: "fastapi" },
-  { from: "fastapi", to: "authapi" },
-  { from: "fastapi", to: "projectsapi" },
-  { from: "fastapi", to: "casesapi" },
-  { from: "fastapi", to: "toolsapi" },
-  { from: "authapi", to: "testrail" },
-  { from: "projectsapi", to: "testrail" },
-  { from: "casesapi", to: "testrail" },
-  { from: "toolsapi", to: "testrail" },
+  { from: "browser", to: "app" }, { from: "app", to: "login" }, { from: "app", to: "projects" },
+  { from: "app", to: "authctx" }, { from: "projects", to: "toolspanel" }, { from: "projects", to: "api" },
+  { from: "projects", to: "indexcss" }, { from: "login", to: "api" }, { from: "toolspanel", to: "createcase" },
+  { from: "toolspanel", to: "createsection" }, { from: "toolspanel", to: "export" }, { from: "toolspanel", to: "bulkids" },
+  { from: "toolspanel", to: "fixnames" }, { from: "toolspanel", to: "convert" }, { from: "toolspanel", to: "settings" },
+  { from: "toolspanel", to: "appstructure" }, { from: "toolspanel", to: "depmap" }, { from: "createcase", to: "api" },
+  { from: "createsection", to: "api" }, { from: "export", to: "api" }, { from: "bulkids", to: "api" },
+  { from: "fixnames", to: "api" }, { from: "convert", to: "api" }, { from: "authctx", to: "api" },
+  { from: "api", to: "fastapi" }, { from: "fastapi", to: "authapi" }, { from: "fastapi", to: "projectsapi" },
+  { from: "fastapi", to: "casesapi" }, { from: "fastapi", to: "toolsapi" }, { from: "authapi", to: "testrail" },
+  { from: "projectsapi", to: "testrail" }, { from: "casesapi", to: "testrail" }, { from: "toolsapi", to: "testrail" },
 ];
 
 const GROUP_LABELS = [
-  { label: "Frontend", color: "#3b82f6" },
-  { label: "Component", color: "#14b8a6" },
-  { label: "Tools", color: "#f97316" },
-  { label: "API Layer", color: "#eab308" },
-  { label: "Backend", color: "#22c55e" },
-  { label: "Styles", color: "#ec4899" },
+  { label: "Frontend", color: "#3b82f6" }, { label: "Component", color: "#14b8a6" },
+  { label: "Tools", color: "#f97316" }, { label: "API Layer", color: "#eab308" },
+  { label: "Backend", color: "#22c55e" }, { label: "Styles", color: "#ec4899" },
   { label: "External", color: "#64748b" },
 ];
 
@@ -88,16 +63,11 @@ export default function DependencyMap() {
   const svgHeight = Math.max(...NODES.map(n => n.y + NODE_HEIGHT)) + 100;
 
   const getNode = (id) => NODES.find((n) => n.id === id);
-
-  const nodeCenter = (node) => ({
-    x: node.x + NODE_WIDTH / 2,
-    y: node.y + NODE_HEIGHT / 2,
-  });
+  const nodeCenter = (node) => ({ x: node.x + NODE_WIDTH / 2, y: node.y + NODE_HEIGHT / 2 });
 
   const isConnected = (nodeId) => {
     if (!selected) return true;
-    return selected === nodeId ||
-      EDGES.some(e => (e.from === selected && e.to === nodeId) || (e.to === selected && e.from === nodeId));
+    return selected === nodeId || EDGES.some(e => (e.from === selected && e.to === nodeId) || (e.to === selected && e.from === nodeId));
   };
 
   const isEdgeActive = (edge) => {
@@ -130,16 +100,11 @@ export default function DependencyMap() {
     const mouseY = e.clientY - rect.top;
     setTransform(t => {
       const newScale = Math.min(3, Math.max(0.3, t.scale * delta));
-      const scaleChange = newScale / t.scale;
-      return {
-        x: mouseX - scaleChange * (mouseX - t.x),
-        y: mouseY - scaleChange * (mouseY - t.y),
-        scale: newScale,
-      };
+      const sc = newScale / t.scale;
+      return { x: mouseX - sc * (mouseX - t.x), y: mouseY - sc * (mouseY - t.y), scale: newScale };
     });
   }, []);
 
-  // Wheel listener
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -147,18 +112,12 @@ export default function DependencyMap() {
     return () => el.removeEventListener("wheel", onWheel);
   }, [onWheel]);
 
-  // Center on load
   useEffect(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    setTransform({
-      x: (rect.width - svgWidth * 0.8) / 2,
-      y: (rect.height - svgHeight * 0.8) / 2 + 25,
-      scale: 0.8,
-    });
+    setTransform({ x: (rect.width - svgWidth * 0.8) / 2, y: (rect.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 });
   }, []);
 
-  // Global mouseup — fixes sticky pan
   useEffect(() => {
     const handleMouseUp = (e) => {
       if (isPanning.current) {
@@ -172,86 +131,58 @@ export default function DependencyMap() {
     return () => window.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
+  // Read CSS vars at render time for SVG (SVG can't use CSS vars in all contexts)
+  const bgColor = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0a0f1e";
+  const panelColor = getComputedStyle(document.documentElement).getPropertyValue("--bg-panel").trim() || "#0f172a";
+  const borderColor = getComputedStyle(document.documentElement).getPropertyValue("--border").trim() || "#1e293b";
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#3b82f6";
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#f8fafc";
+  const mutedColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#94a3b8";
+  const dimColor = getComputedStyle(document.documentElement).getPropertyValue("--text-dim").trim() || "#475569";
+
   return (
     <div
       ref={containerRef}
-      style={{
-        backgroundColor: "#0a0f1e", width: "100%", height: "100%",
-        overflow: "hidden", position: "relative",
-        cursor: "grab",
-        fontFamily: "'SF Mono', 'Fira Code', monospace",
-        userSelect: "none",
-      }}
+      style={{ backgroundColor: "var(--bg)", width: "100%", height: "100%", overflow: "hidden", position: "relative", cursor: "grab", fontFamily: "'SF Mono', 'Fira Code', monospace", userSelect: "none" }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
     >
       {/* Legend */}
-      <div style={{
-        position: "absolute", top: "12px", left: "12px", zIndex: 10,
-        backgroundColor: "#0f172acc", borderRadius: "8px", padding: "10px 14px",
-        border: "1px solid #1e293b", display: "flex", gap: "14px", flexWrap: "wrap",
-      }}>
+      <div style={{ position: "absolute", top: "12px", left: "12px", zIndex: 10, backgroundColor: panelColor + "cc", borderRadius: "8px", padding: "10px 14px", border: `1px solid ${borderColor}`, display: "flex", gap: "14px", flexWrap: "wrap" }}>
         {GROUP_LABELS.map(g => (
           <div key={g.label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
             <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: g.color }} />
-            <span style={{ color: "#94a3b8", fontSize: "0.7rem" }}>{g.label}</span>
+            <span style={{ color: mutedColor, fontSize: "0.7rem" }}>{g.label}</span>
           </div>
         ))}
       </div>
 
       {/* Zoom controls */}
-      <div style={{
-        position: "absolute", bottom: "20px", right: "20px", zIndex: 10,
-        display: "flex", flexDirection: "column", gap: "4px",
-      }}>
+      <div style={{ position: "absolute", bottom: "20px", right: "20px", zIndex: 10, display: "flex", flexDirection: "column", gap: "4px" }}>
         {[
           { label: "+", action: () => setTransform(t => ({ ...t, scale: Math.min(3, t.scale * 1.2) })) },
           { label: "−", action: () => setTransform(t => ({ ...t, scale: Math.max(0.3, t.scale * 0.8) })) },
-          { label: "↺", action: () => {
-            const rect = containerRef.current.getBoundingClientRect();
-            setTransform({
-              x: (rect.width - svgWidth * 0.8) / 2,
-              y: (rect.height - svgHeight * 0.8) / 2 + 25,
-              scale: 0.8,
-            });
-          }},
+          { label: "↺", action: () => { const rect = containerRef.current.getBoundingClientRect(); setTransform({ x: (rect.width - svgWidth * 0.8) / 2, y: (rect.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 }); }},
         ].map(btn => (
-          <button
-            key={btn.label}
-            onClick={btn.action}
-            style={{
-              width: "32px", height: "32px", borderRadius: "6px", border: "1px solid #334155",
-              backgroundColor: "#1e293b", color: "#f8fafc", fontSize: "1rem",
-              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >{btn.label}</button>
+          <button key={btn.label} onClick={btn.action} style={{ width: "32px", height: "32px", borderRadius: "6px", border: `1px solid ${borderColor}`, backgroundColor: panelColor, color: textColor, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {btn.label}
+          </button>
         ))}
       </div>
 
       {/* Hint */}
-      <div style={{
-        position: "absolute", bottom: "20px", left: "12px", zIndex: 10,
-        color: "#334155", fontSize: "0.72rem",
-      }}>
+      <div style={{ position: "absolute", bottom: "20px", left: "12px", zIndex: 10, color: dimColor, fontSize: "0.72rem" }}>
         Scroll to zoom · Drag to pan · Click node to highlight
       </div>
 
       {/* SVG */}
-      <svg
-        width={svgWidth}
-        height={svgHeight}
-        style={{
-          display: "block",
-          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-          transformOrigin: "0 0",
-        }}
-      >
+      <svg width={svgWidth} height={svgHeight} style={{ display: "block", transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: "0 0" }}>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#334155" />
+            <path d="M0,0 L0,6 L8,3 z" fill={borderColor} />
           </marker>
           <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6" />
+            <path d="M0,0 L0,6 L8,3 z" fill={accentColor} />
           </marker>
         </defs>
 
@@ -262,14 +193,11 @@ export default function DependencyMap() {
           const fc = nodeCenter(from);
           const tc = nodeCenter(to);
           const active = isEdgeActive(edge);
-          const mx = (fc.x + tc.x) / 2;
-          const my = (fc.y + tc.y) / 2;
           return (
-            <path
-              key={i}
-              d={`M ${fc.x} ${fc.y} Q ${mx} ${my} ${tc.x} ${tc.y}`}
+            <path key={i}
+              d={`M ${fc.x} ${fc.y} Q ${(fc.x + tc.x) / 2} ${(fc.y + tc.y) / 2} ${tc.x} ${tc.y}`}
               fill="none"
-              stroke={active ? "#3b82f6" : "#1e293b"}
+              stroke={active ? accentColor : borderColor}
               strokeWidth={active ? 1.5 : 1}
               strokeOpacity={active ? 0.8 : 0.4}
               markerEnd={active ? "url(#arrow-active)" : "url(#arrow)"}
@@ -282,30 +210,21 @@ export default function DependencyMap() {
           const isSelected = selected === node.id;
           const isHov = hovered === node.id;
           return (
-            <g
-              key={node.id}
-              className="node"
-              transform={`translate(${node.x}, ${node.y})`}
-              style={{ cursor: "pointer" }}
+            <g key={node.id} className="node" transform={`translate(${node.x}, ${node.y})`} style={{ cursor: "pointer" }}
               onClick={(e) => { e.stopPropagation(); setSelected(isSelected ? null : node.id); }}
               onMouseEnter={() => setHovered(node.id)}
               onMouseLeave={() => setHovered(null)}
             >
-              <rect
-                width={NODE_WIDTH} height={NODE_HEIGHT} rx={6}
-                fill={isSelected ? node.color + "33" : isHov ? node.color + "22" : "#0f172a"}
-                stroke={isSelected || isHov ? node.color : connected ? "#1e293b" : "#0a0f1e"}
+              <rect width={NODE_WIDTH} height={NODE_HEIGHT} rx={6}
+                fill={isSelected ? node.color + "33" : isHov ? node.color + "22" : panelColor}
+                stroke={isSelected || isHov ? node.color : connected ? borderColor : bgColor}
                 strokeWidth={isSelected ? 2 : 1}
                 opacity={connected ? 1 : 0.25}
               />
-              <text x={NODE_WIDTH / 2} y={20} textAnchor="middle"
-                fill={connected ? node.color : "#1e293b"}
-                fontSize="11" fontWeight="700" fontFamily="'SF Mono', monospace">
+              <text x={NODE_WIDTH / 2} y={20} textAnchor="middle" fill={connected ? node.color : borderColor} fontSize="11" fontWeight="700" fontFamily="'SF Mono', monospace">
                 {node.label}
               </text>
-              <text x={NODE_WIDTH / 2} y={36} textAnchor="middle"
-                fill={connected ? "#64748b" : "#1e293b"}
-                fontSize="9" fontFamily="'SF Mono', monospace">
+              <text x={NODE_WIDTH / 2} y={36} textAnchor="middle" fill={connected ? mutedColor : borderColor} fontSize="9" fontFamily="'SF Mono', monospace">
                 {node.sub}
               </text>
             </g>
@@ -319,23 +238,18 @@ export default function DependencyMap() {
         const outgoing = EDGES.filter(e => e.from === selected).map(e => getNode(e.to)).filter(Boolean);
         const incoming = EDGES.filter(e => e.to === selected).map(e => getNode(e.from)).filter(Boolean);
         return (
-          <div style={{
-            position: "absolute", bottom: "20px", right: "70px",
-            backgroundColor: "#0f172a", border: `1px solid ${node.color}`,
-            borderRadius: "10px", padding: "16px", width: "240px",
-            boxShadow: `0 0 20px ${node.color}33`, zIndex: 20,
-          }}>
+          <div style={{ position: "absolute", bottom: "20px", right: "70px", backgroundColor: panelColor, border: `1px solid ${node.color}`, borderRadius: "10px", padding: "16px", width: "240px", boxShadow: `0 0 20px ${node.color}33`, zIndex: 20 }}>
             <div style={{ color: node.color, fontWeight: "700", fontSize: "0.9rem", marginBottom: "4px" }}>{node.label}</div>
-            <div style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: "12px" }}>{node.sub}</div>
+            <div style={{ color: mutedColor, fontSize: "0.75rem", marginBottom: "12px" }}>{node.sub}</div>
             {incoming.length > 0 && (
               <div style={{ marginBottom: "8px" }}>
-                <div style={{ color: "#475569", fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Receives from</div>
+                <div style={{ color: dimColor, fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Receives from</div>
                 {incoming.map(n => <div key={n.id} style={{ color: n.color, fontSize: "0.78rem", marginBottom: "2px" }}>← {n.label}</div>)}
               </div>
             )}
             {outgoing.length > 0 && (
               <div>
-                <div style={{ color: "#475569", fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Sends to</div>
+                <div style={{ color: dimColor, fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Sends to</div>
                 {outgoing.map(n => <div key={n.id} style={{ color: n.color, fontSize: "0.78rem", marginBottom: "2px" }}>→ {n.label}</div>)}
               </div>
             )}
