@@ -99,7 +99,7 @@
             {activeSection === "theme" && (
             <div style={styles.section}>
                 <h3 style={styles.heading}>Theme</h3>
-                <p style={styles.description}>Choose a color theme for the app. (Visual preview — full implementation coming soon.)</p>
+                <p style={styles.description}>Choose a color theme for the app.</p>
                 <div style={styles.themeGrid}>
                 {THEMES.map((t) => (
                     <div
