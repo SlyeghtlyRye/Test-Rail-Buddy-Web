@@ -173,7 +173,7 @@ export default function DependencyMap() {
   useEffect(() => {
     if (!containerRef.current || !nodes.length) return;
     const rect = containerRef.current.getBoundingClientRect();
-    setTransform({ x: (rect.width - svgWidth * 0.8) / 2, y: (rect.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 });
+    setTransform({ x: (rect.width - svgWidth * 0.8) / 2 + 80, y: (rect.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 });
   }, [nodes.length]);
 
   useEffect(() => {
@@ -220,7 +220,7 @@ export default function DependencyMap() {
         {[
           { label: "+", fn: () => setTransform(t => ({ ...t, scale: Math.min(3, t.scale * 1.2) })) },
           { label: "−", fn: () => setTransform(t => ({ ...t, scale: Math.max(0.3, t.scale * 0.8) })) },
-          { label: "↺", fn: () => { const r = containerRef.current.getBoundingClientRect(); setTransform({ x: (r.width - svgWidth * 0.8) / 2, y: (r.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 }); }},
+          { label: "↺", fn: () => { const r = containerRef.current.getBoundingClientRect(); setTransform({ x: (r.width - svgWidth * 0.8) / 2 + 80, y: (r.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 }); }},
         ].map(b => (
           <button key={b.label} onClick={b.fn} style={{ width: "32px", height: "32px", borderRadius: "6px", border: `1px solid ${border}`, backgroundColor: panel, color: text, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {b.label}
