@@ -275,24 +275,22 @@ export default function ProjectsPage() {
           <div style={{ ...styles.panelOuter, width: `${panelWidth}px` }}>
             <div style={styles.panelInner}>
               <div style={styles.panelHeader}>
-                  <span style={styles.label}>Project</span>
-                  <button style={styles.collapseBtn} onClick={() => setLeftCollapsed(true)}>◀</button>
-                </div>
-                <div style={styles.stickySelect}>
-                  <select style={styles.select} onChange={handleProjectChange} value={selectedProject?.id || ""}>
-                    <option value="" disabled>Select a project...</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-                {suites.length > 0 && (
-                  <>
-                    <label style={{ ...styles.label, marginTop: "20px" }}>Suites</label>
-                    {suites.map(s => (
-                      <div key={s.id} style={{ ...styles.suiteItem, backgroundColor: selectedSuite?.id === s.id ? "var(--accent)" : "var(--bg-panel)" }} onClick={() => handleSuiteClick(s)}>{s.name}</div>
-                    ))}
-                  </>
-                )}
+                <span style={styles.label}>Project</span>
+                <button style={styles.collapseBtn} onClick={() => setLeftCollapsed(true)}>◀</button>
               </div>
+              <select style={styles.select} onChange={handleProjectChange} value={selectedProject?.id || ""}>
+                <option value="" disabled>Select a project...</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {suites.length > 0 && (
+                <div style={styles.suitesScroll}>
+                  <label style={{ ...styles.label, marginTop: "20px" }}>Suites</label>
+                  {suites.map(s => (
+                    <div key={s.id} style={{ ...styles.suiteItem, backgroundColor: selectedSuite?.id === s.id ? "var(--accent)" : "var(--bg-panel)" }} onClick={() => handleSuiteClick(s)}>{s.name}</div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={styles.resizeHandle} onMouseDown={handleMouseDown} />
           </div>
         )}
@@ -301,7 +299,7 @@ export default function ProjectsPage() {
         {middleCollapsed && <div style={styles.collapsedTab} onClick={() => setMiddleCollapsed(false)}><span style={styles.collapsedLabel}>▶ Cases</span></div>}
         {!middleCollapsed && (
           <div style={{ ...styles.panelOuter, width: `${middleWidth}px` }}>
-            <div style={styles.panelInner}>
+            <div style={{ ...styles.panelInner, overflowY: "auto" }}>
               <div style={styles.panelHeader}>
                 <span style={styles.label}>{selectedSuite ? selectedSuite.name : selectedProject?.name || "Cases"}</span>
                 <button style={styles.collapseBtn} onClick={() => setMiddleCollapsed(true)}>◀</button>
@@ -405,7 +403,8 @@ const styles = {
   toolsBtn: { padding: "8px 16px", borderRadius: "6px", border: "none", backgroundColor: "var(--accent)", color: "#fff", cursor: "pointer", fontSize: "0.9rem" },
   content: { display: "flex", flex: 1, overflow: "hidden", width: "100%" },
   panelOuter: { position: "relative", display: "flex", flexShrink: 0, borderRight: "1px solid var(--border)", minWidth: 0, backgroundColor: "var(--bg)" },
-  panelInner: { flex: 1, overflowY: "auto", padding: "0 20px 20px 20px", display: "flex", flexDirection: "column" },
+  panelInner: { flex: 1, padding: "0 20px 20px 20px", display: "flex", flexDirection: "column", overflow: "hidden" },
+
   rightPanel: { flex: 1, padding: "0 20px 20px 20px", overflowY: "auto", overflowX: "hidden", backgroundColor: "var(--bg)", position: "relative", minWidth: 0, maxWidth: "100%", borderLeft: "1px solid var(--border)" },
   resizeHandle: { position: "absolute", right: 0, top: 0, bottom: 0, width: "4px", cursor: "col-resize", backgroundColor: "var(--border)", zIndex: 10 },
   panelHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", position: "sticky", top: 0, backgroundColor: "var(--bg)", zIndex: 10, padding: "20px 0 12px 0", borderBottom: "1px solid var(--border)" },  collapseBtn: { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.85rem", padding: "2px 6px" },
@@ -432,6 +431,6 @@ const styles = {
   fieldValue: { color: "var(--text)", fontSize: "0.95rem" },
   blockText: { color: "var(--text)", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
   caseHeaderTitle: { color: "var(--text)", fontSize: "0.95rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
-  stickySelect: { position: "sticky", top: "53px", backgroundColor: "var(--bg)", paddingBottom: "10px", paddingTop: "10px", zIndex: 9, display: "flex" },
+  suitesScroll: { flex: 1, overflowY: "auto", marginTop: "4px" },
 
 };
