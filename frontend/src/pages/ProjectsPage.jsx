@@ -196,6 +196,13 @@ export default function ProjectsPage() {
     if (isExpanded) { setExpandedSections(prev => ({ ...prev, [section.id]: false })); setSelectedSection(section); return; }
     setExpandedSections(prev => ({ ...prev, [section.id]: true }));
     setSelectedSection(section);
+
+    // Show count badge whenever opening
+    if (cases[section.id]) {
+      setVisibleCounts(prev => ({ ...prev, [section.id]: true }));
+      setTimeout(() => setVisibleCounts(prev => ({ ...prev, [section.id]: false })), 3000);
+    }
+
     if (!cases[section.id]) {
       setLoadingSections(prev => ({ ...prev, [section.id]: true }));
       try {
@@ -252,7 +259,7 @@ export default function ProjectsPage() {
             opacity: visibleCounts[section.id] ? 1 : 0,
             transition: "opacity 1s ease",
           }}>
-            {cases[section.id].length}
+            {cases[section.id].length} cases
           </span>
         )}
       </div>

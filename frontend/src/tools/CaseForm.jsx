@@ -234,7 +234,7 @@ export default function CaseForm({
             disabled={!selectedSection || idLoading}
             type="button"
           >
-            {idLoading ? "..." : idApplied ? "✓ Auto" : "Auto"}
+            {idLoading ? "..." : idApplied ? "↻ Auto" : "Auto"}
           </button>
         </div>
       </div>
@@ -336,5 +336,5 @@ const styles = {
   collapseIcon: { color: "var(--text-muted)", fontSize: "0.7rem" },
   collapseLabel: { color: "var(--text-muted)", fontSize: "0.85rem" },
   collapseBody: { padding: "14px", display: "flex", flexDirection: "column", gap: "14px", borderTop: "1px solid var(--border)" },
-  stickyFooter: { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--footer-border)", borderRadius: "8px", zIndex: 10 },
+  stickyFooter: { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "8px", zIndex: 10 },
 };
