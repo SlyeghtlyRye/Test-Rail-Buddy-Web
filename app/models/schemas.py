@@ -30,7 +30,8 @@ class CaseUpdateRequest(BaseModel):
     url: str
     email: str
     password: str
-    fields: Dict[str, Any]
+    title: Optional[str] = None
+    fields: Dict[str, Any] = {}
 
 class CaseCreateRequest(BaseModel):
     url: str

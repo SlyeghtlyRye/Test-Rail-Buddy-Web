@@ -16,7 +16,7 @@ const TOOLS = [
   { id: "settings", label: "Settings", component: Settings },
 ];
 
-export default function ToolsPanel({ onClose, credentials, selectedProject, selectedSuite, selectedSection, sections }) {
+export default function ToolsPanel({ onClose, credentials, selectedProject, selectedSuite, selectedSection, sections, onCaseCreated }) {
   const [activeTool, setActiveTool] = useState(null);
 
   const ActiveComponent = activeTool ? TOOLS.find(t => t.id === activeTool)?.component : null;
@@ -60,6 +60,7 @@ export default function ToolsPanel({ onClose, credentials, selectedProject, sele
                 selectedSuite={selectedSuite}
                 selectedSection={selectedSection}
                 sections={sections}
+                onCaseCreated={onCaseCreated}
             />
             )}
           </div>
