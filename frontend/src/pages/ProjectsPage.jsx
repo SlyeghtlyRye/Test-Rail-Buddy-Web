@@ -64,6 +64,11 @@ export default function ProjectsPage() {
   const isResizingMiddle = useRef(false);
   const containerRef = useRef(null);
 
+
+  const [visibleCounts, setVisibleCounts] = useState({});
+
+
+
   useEffect(() => {
     if (!credentials) { navigate("/"); return; }
     loadProjects();
@@ -185,6 +190,7 @@ export default function ProjectsPage() {
     setLoading(false);
   };
 
+
   const toggleSection = async (section) => {
     const isExpanded = expandedSections[section.id];
     if (isExpanded) { setExpandedSections(prev => ({ ...prev, [section.id]: false })); setSelectedSection(section); return; }
@@ -195,6 +201,8 @@ export default function ProjectsPage() {
       try {
         const res = await getCases(credentials, selectedProject.id, selectedSuite?.id, section.id);
         setCases(prev => ({ ...prev, [section.id]: res.data.cases }));
+        setVisibleCounts(prev => ({ ...prev, [section.id]: true }));
+        setTimeout(() => setVisibleCounts(prev => ({ ...prev, [section.id]: false })), 3000);
       } catch (err) { console.error("Failed to load cases", err); }
       setLoadingSections(prev => ({ ...prev, [section.id]: false }));
     }
@@ -238,6 +246,15 @@ export default function ProjectsPage() {
       >
         <span style={styles.sectionIcon}>{expandedSections[section.id] ? "▼" : "▶"}</span>
         <span style={styles.sectionName}>{section.name}</span>
+        {cases[section.id] !== undefined && (
+          <span style={{
+            ...styles.caseCount,
+            opacity: visibleCounts[section.id] ? 1 : 0,
+            transition: "opacity 1s ease",
+          }}>
+            {cases[section.id].length}
+          </span>
+        )}
       </div>
       {expandedSections[section.id] && (
         <div>
@@ -432,5 +449,4 @@ const styles = {
   blockText: { color: "var(--text)", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
   caseHeaderTitle: { color: "var(--text)", fontSize: "0.95rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
   suitesScroll: { flex: 1, overflowY: "auto", marginTop: "4px" },
-
-};
+  caseCount: { marginLeft: "auto", fontSize: "0.75rem", color: "var(--text-dim)", backgroundColor: "var(--bg-panel)", padding: "1px 7px", borderRadius: "10px", flexShrink: 0 },};
