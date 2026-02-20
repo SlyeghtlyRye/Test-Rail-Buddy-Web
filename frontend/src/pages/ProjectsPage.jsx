@@ -66,9 +66,6 @@ export default function ProjectsPage() {
 
 
   const [visibleCounts, setVisibleCounts] = useState({});
-
-
-
   useEffect(() => {
     if (!credentials) { navigate("/"); return; }
     loadProjects();
@@ -92,6 +89,12 @@ export default function ProjectsPage() {
     } catch (err) {
       console.error("Failed to delete case", err);
     }
+  };
+
+  const handleOpenCase = async (c) => {
+    setToolsOpen(false);
+    const section = sections.find(s => s.id === c.section_id);
+    if (section) await handleCaseClick(c, section);
   };
 
   const handleEditSave = async (fields) => {
@@ -408,6 +411,7 @@ export default function ProjectsPage() {
           selectedSuite={selectedSuite}
           selectedSection={selectedSection}
           sections={sections}
+          onOpenCase={handleOpenCase}
           onCaseCreated={(sectionId, createAnother, newCaseId) => {
             const section = sections.find(s => s.id === sectionId);
             if (section) reloadSection(section, createAnother ? null : newCaseId);

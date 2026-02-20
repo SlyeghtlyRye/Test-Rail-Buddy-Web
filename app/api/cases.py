@@ -1,5 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import CaseCreateRequest, CasesQuery, CaseUpdateRequest, ConnectionBody
+from app.models.schemas import (
+    BulkIDRequest, CaseCreateRequest, CasesQuery,
+    CaseUpdateRequest, ConnectionBody, FixNamesRequest,
+)
 from app.services.testrail_client import TestRailClient, TestRailError
 from app.core.config import get_settings
 
@@ -8,6 +11,9 @@ settings = get_settings()
 
 def _client(url, email, password):
     return TestRailClient(url, email, password)
+
+
+# ── Static routes first (before wildcard /{case_id}) ────────────────────────
 
 @router.post("/")
 def list_cases(body: CasesQuery):
@@ -42,6 +48,44 @@ def get_case_fields(body: ConnectionBody):
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
+@router.post("/bulk-ids")
+def bulk_edit_ids(body: BulkIDRequest):
+    if settings.read_only_mode:
+        raise HTTPException(status_code=403, detail="API is in read-only mode")
+    c = _client(body.url, body.email, body.password)
+    updated, errors, results = 0, 0, []
+    for i, case_id in enumerate(body.case_ids, start=1):
+        new_id = f"{body.base_id}_{i:04d}"
+        try:
+            c.update_case(case_id, {"custom_tc_test_case_id": new_id})
+            results.append({"case_id": case_id, "new_id": new_id, "ok": True})
+            updated += 1
+        except Exception as exc:
+            results.append({"case_id": case_id, "new_id": new_id, "ok": False, "error": str(exc)})
+            errors += 1
+    return {"updated": updated, "errors": errors, "results": results}
+
+@router.post("/fix-names")
+def fix_test_names(body: FixNamesRequest):
+    if settings.read_only_mode:
+        raise HTTPException(status_code=403, detail="API is in read-only mode")
+    c = _client(body.url, body.email, body.password)
+    updated, errors, results = 0, 0, []
+    for case_id in body.case_ids:
+        try:
+            case = c.get_case(case_id)
+            new_name = (case.get("title") or "Untitled").replace(" ", "_")
+            c.update_case(case_id, {"custom_tc_name": new_name})
+            results.append({"case_id": case_id, "new_name": new_name, "ok": True})
+            updated += 1
+        except Exception as exc:
+            results.append({"case_id": case_id, "ok": False, "error": str(exc)})
+            errors += 1
+    return {"updated": updated, "errors": errors, "results": results}
+
+
+# ── Wildcard routes last ─────────────────────────────────────────────────────
+
 @router.post("/{case_id}")
 def get_case(case_id: int, body: CasesQuery):
     c = _client(body.url, body.email, body.password)
@@ -75,17 +119,5 @@ def delete_case(case_id: int, body: CaseUpdateRequest, permanent: bool = False):
         return {"success": True, "case_id": case_id}
     except TestRailError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
-    
-
-@router.post("/{case_id}/delete")
-def delete_case(case_id: int, body: ConnectionBody):
-    client = TestRailClient(body.url, body.email, body.password)
-    try:
-        client.session.post(
-            f"{client.url}/index.php?/api/v2/delete_case/{case_id}"
-        )
-        return {"success": True}
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))

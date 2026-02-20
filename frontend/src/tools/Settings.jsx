@@ -181,19 +181,22 @@
 
             {/* DOCS */}
             {activeSection === "docs" && (
-            <div style={styles.section}>
-                <h3 style={styles.heading}>App Framework</h3>
-                <p style={styles.description}>
-                Opens an interactive map of the entire codebase.
-                </p>
-                <button style={styles.btn} onClick={() => setShowStructure(true)}>
-                Open App Structure
-                </button>
-                <button style={styles.btn} onClick={() => setShowMap(true)}>
-                Open Dependency Map
-                </button>
-            </div>
-            )}
+                <div style={styles.section}>
+                    <h3 style={styles.heading}>App Framework</h3>
+                    <p style={styles.description}>
+                    Opens an interactive map of the entire codebase.
+                    </p>
+                    <button style={styles.btn} onClick={() => setShowStructure(true)}>
+                    Open App Structure
+                    </button>
+                    <button style={styles.btn} onClick={() => setShowMap(true)}>
+                    Open Dependency Map
+                    </button>
+                    <button style={styles.btn} onClick={() => window.open(`${BASE_URL}/docs`, "_blank")}>
+                    Open API Docs
+                    </button>
+                </div>
+                )}
 
             {/* VERSION */}
             {activeSection === "version" && (
