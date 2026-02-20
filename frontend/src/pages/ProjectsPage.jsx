@@ -275,22 +275,24 @@ export default function ProjectsPage() {
           <div style={{ ...styles.panelOuter, width: `${panelWidth}px` }}>
             <div style={styles.panelInner}>
               <div style={styles.panelHeader}>
-                <span style={styles.label}>Project</span>
-                <button style={styles.collapseBtn} onClick={() => setLeftCollapsed(true)}>◀</button>
+                  <span style={styles.label}>Project</span>
+                  <button style={styles.collapseBtn} onClick={() => setLeftCollapsed(true)}>◀</button>
+                </div>
+                <div style={styles.stickySelect}>
+                  <select style={styles.select} onChange={handleProjectChange} value={selectedProject?.id || ""}>
+                    <option value="" disabled>Select a project...</option>
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                {suites.length > 0 && (
+                  <>
+                    <label style={{ ...styles.label, marginTop: "20px" }}>Suites</label>
+                    {suites.map(s => (
+                      <div key={s.id} style={{ ...styles.suiteItem, backgroundColor: selectedSuite?.id === s.id ? "var(--accent)" : "var(--bg-panel)" }} onClick={() => handleSuiteClick(s)}>{s.name}</div>
+                    ))}
+                  </>
+                )}
               </div>
-              <select style={styles.select} onChange={handleProjectChange} value={selectedProject?.id || ""}>
-                <option value="" disabled>Select a project...</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              {suites.length > 0 && (
-                <>
-                  <label style={{ ...styles.label, marginTop: "20px" }}>Suites</label>
-                  {suites.map(s => (
-                    <div key={s.id} style={{ ...styles.suiteItem, backgroundColor: selectedSuite?.id === s.id ? "var(--accent)" : "var(--bg-panel)" }} onClick={() => handleSuiteClick(s)}>{s.name}</div>
-                  ))}
-                </>
-              )}
-            </div>
             <div style={styles.resizeHandle} onMouseDown={handleMouseDown} />
           </div>
         )}
@@ -412,7 +414,7 @@ const styles = {
   collapsedTab: { width: "28px", backgroundColor: "var(--bg-panel)", borderRight: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
   collapsedLabel: { color: "var(--text-muted)", fontSize: "0.7rem", writingMode: "vertical-rl", textOrientation: "mixed", letterSpacing: "0.05em" },
   label: { color: "var(--text-muted)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" },
-  select: { padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.95rem", cursor: "pointer" },
+  select: { padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.95rem", cursor: "pointer", width: "100%" },
   suiteItem: { padding: "10px 12px", borderRadius: "6px", color: "var(--text)", fontSize: "0.9rem", cursor: "pointer", marginBottom: "4px", display: "block", width: "100%", boxSizing: "border-box" },
   tree: { backgroundColor: "var(--bg)" },
   sectionRow: { display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", cursor: "pointer", borderRadius: "6px", color: "var(--text)", fontSize: "0.95rem" },
@@ -430,4 +432,6 @@ const styles = {
   fieldValue: { color: "var(--text)", fontSize: "0.95rem" },
   blockText: { color: "var(--text)", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
   caseHeaderTitle: { color: "var(--text)", fontSize: "0.95rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
+  stickySelect: { position: "sticky", top: "53px", backgroundColor: "var(--bg)", paddingBottom: "10px", paddingTop: "10px", zIndex: 9, display: "flex" },
+
 };
