@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { loadSavedTheme } from "../theme";
+import { loadSavedTheme, THEMES, applyTheme } from "../theme";
 import { verifyAuth } from "../api";
 import { useAuth } from "../AuthContext";
 import AppStructure from "../tools/AppStructure";
 import DependencyMap from "../tools/DependencyMap";
+import axios from "axios";
+
+const BASE_URL = "http://localhost:8000";
 
 const VERSION = {
   number: "0.2.0",
@@ -29,10 +32,77 @@ export default function LoginPage() {
   const [showStructure, setShowStructure] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
+  // Theme state
+  const [selectedTheme, setSelectedTheme] = useState("default");
+
+  // API Test state
+  const [apiStatus, setApiStatus] = useState(null);
+  const [apiLoading, setApiLoading] = useState(false);
+
+  // Resizable modal state
+  const [modalSize, setModalSize] = useState({ width: 620, height: 520 });
+  const dragRef = useRef(null);
+  const isResizing = useRef(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => { loadSavedTheme(); }, []);
+  useEffect(() => {
+    loadSavedTheme();
+    const saved = localStorage.getItem("theme");
+    if (saved) setSelectedTheme(JSON.parse(saved).id);
+  }, []);
+
+  const MIN_W = 480;
+  const MIN_H = 360;
+  const MAX_W = window.innerWidth  * 0.98;
+  const MAX_H = window.innerHeight * 0.98;
+
+  const startResize = (e, edge) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizing.current = true;
+    dragRef.current = { edge, startX: e.clientX, startY: e.clientY, startW: modalSize.width, startH: modalSize.height };
+
+    function onMove(ev) {
+      const { edge, startX, startY, startW, startH } = dragRef.current;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      setModalSize(prev => {
+        let w = prev.width, h = prev.height;
+        if (edge.includes("e")) w = Math.min(MAX_W, Math.max(MIN_W, startW + dx));
+        if (edge.includes("w")) w = Math.min(MAX_W, Math.max(MIN_W, startW - dx));
+        if (edge.includes("s")) h = Math.min(MAX_H, Math.max(MIN_H, startH + dy));
+        if (edge.includes("n")) h = Math.min(MAX_H, Math.max(MIN_H, startH - dy));
+        return { width: w, height: h };
+      });
+    }
+
+    function onUp() {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setTimeout(() => { isResizing.current = false; }, 50);
+    }
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const THICK = 6;
+  const CORNER = 14;
+  const resizeHandle = (edge, cursor, style) => (
+    <div
+      key={edge}
+      onMouseDown={e => startResize(e, edge)}
+      style={{ position: "absolute", cursor, zIndex: 10, ...style }}
+    />
+  );
+
+  const handleOverlayClick = () => {
+    if (isResizing.current) return;
+    setShowSettings(false);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -53,6 +123,27 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const testApi = async () => {
+    setApiLoading(true);
+    setApiStatus(null);
+    try {
+      const start = Date.now();
+      await axios.post(`${BASE_URL}/api/auth/verify`, { url, email, password });
+      const ms = Date.now() - start;
+      setApiStatus({ ok: true, ms });
+    } catch (err) {
+      setApiStatus({ ok: false, error: err.message });
+    }
+    setApiLoading(false);
+  };
+
+  const sections = [
+    { id: "theme", label: "Theme" },
+    { id: "test", label: "API Test" },
+    { id: "docs", label: "App Framework" },
+    { id: "version", label: "Version" },
+  ];
+
   return (
     <div style={styles.container}>
       {/* Gear button */}
@@ -72,28 +163,130 @@ export default function LoginPage() {
 
       {/* Settings modal */}
       {showSettings && (
-        <div style={styles.modalOverlay} onClick={() => setShowSettings(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalOverlay} onClick={handleOverlayClick}>
+          <div
+            style={{ ...styles.modal, width: modalSize.width, height: modalSize.height }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Resize handles */}
+            {resizeHandle("n",  "n-resize",  { top: 0,    left: CORNER, right: CORNER, height: THICK })}
+            {resizeHandle("s",  "s-resize",  { bottom: 0, left: CORNER, right: CORNER, height: THICK })}
+            {resizeHandle("e",  "e-resize",  { right: 0,  top: CORNER, bottom: CORNER, width: THICK })}
+            {resizeHandle("w",  "w-resize",  { left: 0,   top: CORNER, bottom: CORNER, width: THICK })}
+            {resizeHandle("nw", "nw-resize", { top: 0,    left: 0,   width: CORNER, height: CORNER })}
+            {resizeHandle("ne", "ne-resize", { top: 0,    right: 0,  width: CORNER, height: CORNER })}
+            {resizeHandle("sw", "sw-resize", { bottom: 0, left: 0,   width: CORNER, height: CORNER })}
+            {resizeHandle("se", "se-resize", { bottom: 0, right: 0,  width: CORNER, height: CORNER })}
+
+            {/* Header */}
             <div style={styles.modalHeader}>
               <span style={styles.modalTitle}>Settings</span>
               <button style={styles.closeBtn} onClick={() => setShowSettings(false)}>✕</button>
             </div>
+
+            {/* Body */}
             <div style={styles.modalBody}>
               {/* Sidebar */}
               <div style={styles.sidebar}>
-                {["version", "docs"].map((s) => (
-                  <div key={s} onClick={() => setActiveSection(s)} style={{
+                {sections.map((s) => (
+                  <div key={s.id} onClick={() => setActiveSection(s.id)} style={{
                     ...styles.sidebarItem,
-                    backgroundColor: activeSection === s ? "#3b82f6" : "transparent",
-                    color: activeSection === s ? "white" : "#94a3b8",
+                    backgroundColor: activeSection === s.id ? "#3b82f6" : "transparent",
+                    color: activeSection === s.id ? "white" : "#94a3b8",
                   }}>
-                    {s === "version" ? "Version" : "App Framework"}
+                    {s.label}
                   </div>
                 ))}
               </div>
 
               {/* Content */}
               <div style={styles.content}>
+
+                {/* THEME */}
+                {activeSection === "theme" && (
+                  <div style={styles.section}>
+                    <h3 style={styles.heading}>Theme</h3>
+                    <p style={styles.description}>Choose a color theme for the app.</p>
+                    <div style={styles.themeGrid}>
+                      {THEMES.map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => { applyTheme(t); setSelectedTheme(t.id); }}
+                          style={{
+                            ...styles.themeCard,
+                            border: selectedTheme === t.id ? `2px solid var(--accent)` : `1px solid var(--border)`,
+                          }}
+                        >
+                          <div style={{
+                            height: "60px", borderRadius: "6px", marginBottom: "8px",
+                            backgroundColor: t.bg, border: `1px solid ${t.border}`,
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                          }}>
+                            <div style={{ width: "20px", height: "20px", borderRadius: "4px", backgroundColor: t.accent }} />
+                            <div style={{ width: "40px", height: "8px", borderRadius: "4px", backgroundColor: t.accent, opacity: 0.4 }} />
+                          </div>
+                          <div style={{ color: "var(--text)", fontSize: "0.85rem", textAlign: "center" }}>{t.label}</div>
+                          {selectedTheme === t.id && (
+                            <div style={{ color: t.accent, fontSize: "0.72rem", textAlign: "center", marginTop: "4px" }}>✓ Selected</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* API TEST */}
+                {activeSection === "test" && (
+                  <div style={styles.section}>
+                    <h3 style={styles.heading}>API Test</h3>
+                    <p style={styles.description}>Test your connection to the TestRail backend and verify your credentials are working.</p>
+                    <div style={styles.infoBox}>
+                      <div style={styles.infoRow}>
+                        <span style={styles.infoLabel}>Backend URL</span>
+                        <span style={styles.infoValue}>{BASE_URL}</span>
+                      </div>
+                      <div style={styles.infoRow}>
+                        <span style={styles.infoLabel}>TestRail URL</span>
+                        <span style={styles.infoValue}>{url || "—"}</span>
+                      </div>
+                      <div style={styles.infoRow}>
+                        <span style={styles.infoLabel}>Email</span>
+                        <span style={styles.infoValue}>{email || "—"}</span>
+                      </div>
+                    </div>
+                    <button style={styles.btn} onClick={testApi} disabled={apiLoading}>
+                      {apiLoading ? "Testing..." : "Run Test"}
+                    </button>
+                    {apiStatus && (
+                      <div style={{ ...styles.resultBox, borderColor: apiStatus.ok ? "#22c55e" : "#ef4444" }}>
+                        {apiStatus.ok ? (
+                          <>
+                            <div style={{ color: "#22c55e", fontWeight: "700" }}>✓ Connection Successful</div>
+                            <div style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: "4px" }}>Response time: {apiStatus.ms}ms</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ color: "#ef4444", fontWeight: "700" }}>✕ Connection Failed</div>
+                            <div style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: "4px" }}>{apiStatus.error}</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* APP FRAMEWORK */}
+                {activeSection === "docs" && (
+                  <div style={styles.section}>
+                    <h3 style={styles.heading}>App Framework</h3>
+                    <p style={styles.description}>Opens an interactive map of the entire codebase.</p>
+                    <button style={styles.btn} onClick={() => setShowStructure(true)}>Open App Structure</button>
+                    <button style={{ ...styles.btn, marginTop: "8px" }} onClick={() => setShowMap(true)}>Open Dependency Map</button>
+                    <button style={{ ...styles.btn, marginTop: "8px" }} onClick={() => window.open(`${BASE_URL}/docs`, "_blank")}>Open API Docs</button>
+                  </div>
+                )}
+
+                {/* VERSION */}
                 {activeSection === "version" && (
                   <div style={styles.section}>
                     <h3 style={styles.heading}>Version</h3>
@@ -111,16 +304,16 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {activeSection === "docs" && (
-                  <div style={styles.section}>
-                    <h3 style={styles.heading}>App Framework</h3>
-                    <p style={styles.description}>Opens an interactive map of the entire codebase.</p>
-                    <button style={styles.btn} onClick={() => setShowStructure(true)}>Open App Structure</button>
-                    <button style={styles.btn} onClick={() => setShowMap(true)}>Open Dependency Map</button>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Visual resize handle — bottom-right corner */}
+            <div onMouseDown={e => startResize(e, "se")} style={styles.resizeHandle} title="Drag to resize">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M11 1L1 11M11 6L6 11" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+
           </div>
         </div>
       )}
@@ -163,23 +356,36 @@ const styles = {
   error: { color: "#f87171", fontSize: "0.9rem", margin: "0" },
 
   modalOverlay: { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 },
-  modal: { backgroundColor: "var(--bg-panel)", borderRadius: "10px", width: "560px", maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" },
-  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: "1px solid var(--border)" },
+  modal: { backgroundColor: "var(--bg-panel)", borderRadius: "10px", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", boxShadow: "0 25px 60px rgba(0,0,0,0.4)", userSelect: "none" },
+  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0 },
   modalTitle: { color: "var(--text)", fontSize: "1rem", fontWeight: "600" },
   closeBtn: { background: "none", border: "none", color: "var(--text-muted)", fontSize: "1rem", cursor: "pointer" },
   modalBody: { display: "flex", flex: 1, overflow: "hidden" },
 
-  sidebar: { width: "130px", borderRight: "1px solid var(--border)", padding: "12px 8px", display: "flex", flexDirection: "column", gap: "2px", flexShrink: 0 },
-  sidebarItem: { padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "0.88rem" },
+  sidebar: { width: "140px", borderRight: "1px solid var(--border)", padding: "12px 8px", display: "flex", flexDirection: "column", gap: "2px", flexShrink: 0 },
+  sidebarItem: { padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "0.88rem", transition: "all 0.15s" },
   content: { flex: 1, padding: "16px 20px", overflowY: "auto" },
   section: { display: "flex", flexDirection: "column", gap: "14px" },
   heading: { color: "var(--text)", fontSize: "1rem", margin: 0 },
   description: { color: "var(--text-muted)", fontSize: "0.88rem", margin: 0 },
+
+  themeGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
+  themeCard: { padding: "12px", borderRadius: "8px", cursor: "pointer", backgroundColor: "var(--bg)", transition: "border 0.15s" },
+
+  infoBox: { backgroundColor: "var(--bg)", borderRadius: "8px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px" },
+  infoRow: { display: "flex", flexDirection: "column", gap: "2px" },
+  infoLabel: { color: "var(--text-dim)", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em" },
+  infoValue: { color: "var(--text)", fontSize: "0.88rem", fontFamily: "monospace" },
+  resultBox: { backgroundColor: "var(--bg)", borderRadius: "8px", padding: "14px", border: "1px solid" },
+
   btn: { padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "var(--accent)", color: "white", fontSize: "0.9rem", cursor: "pointer", alignSelf: "flex-start" },
+
   versionBox: { backgroundColor: "var(--bg)", borderRadius: "8px", padding: "20px", display: "flex", flexDirection: "column", gap: "8px" },
   versionNumber: { color: "var(--accent)", fontSize: "2rem", fontWeight: "700", fontFamily: "monospace" },
   versionDate: { color: "var(--text-muted)", fontSize: "0.85rem" },
   versionNotes: { color: "var(--text)", fontSize: "0.9rem", marginTop: "4px" },
+
+  resizeHandle: { position: "absolute", bottom: "4px", right: "4px", cursor: "se-resize", padding: "4px", opacity: 0.5, lineHeight: 0 },
 
   fullOverlay: { position: "fixed", inset: 0, zIndex: 200, display: "flex", flexDirection: "column", backgroundColor: "var(--bg)" },
   overlayHeader: { padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" },

@@ -8,13 +8,13 @@ import CreateSection from "../tools/CreateSection";
 import Settings from "../tools/Settings";
 
 const TOOLS = [
-  { id: "create_case",    label: "Create Case",       component: CreateCase },
-  { id: "create_section", label: "Create Section",    component: CreateSection },
-  { id: "export_cases",   label: "Export Cases",      component: ExportCases },
-  { id: "bulk_edit_ids",  label: "Bulk Edit Case IDs",component: BulkEditIDs },
-  { id: "fix_test_names", label: "Fix Test Names",    component: FixTestNames },
-  { id: "convert_format", label: "Convert Format",    component: ConvertFormat },
-  { id: "settings",       label: "Settings",          component: Settings },
+  { id: "create_case",    label: "Create Case",        component: CreateCase },
+  { id: "create_section", label: "Create Section",     component: CreateSection },
+  { id: "export_cases",   label: "Export Cases",       component: ExportCases },
+  { id: "bulk_edit_ids",  label: "Bulk Edit Case IDs", component: BulkEditIDs },
+  { id: "fix_test_names", label: "Fix Test Names",     component: FixTestNames },
+  { id: "convert_format", label: "Convert Format",     component: ConvertFormat },
+  { id: "settings",       label: "Settings",           component: Settings },
 ];
 
 const MIN_W = 600;
@@ -25,14 +25,16 @@ const MAX_H = window.innerHeight * 0.98;
 export default function ToolsPanel({ onClose, credentials, selectedProject, selectedSuite, selectedSection, sections, onCaseCreated, onOpenCase }) {
   const [activeTool, setActiveTool] = useState(null);
   const [size, setSize] = useState({ w: 1100, h: 700 });
-  const dragRef = useRef(null); // { edge, startX, startY, startW, startH }
+  const dragRef = useRef(null);
+  const isResizing = useRef(false);
 
   const ActiveComponent = activeTool ? TOOLS.find(t => t.id === activeTool)?.component : null;
 
-  // ── Resize logic ────────────────────────────────────────────────────────────
+  // ── Resize logic ─────────────────────────────────────────────────────────────
   const startResize = useCallback((e, edge) => {
     e.preventDefault();
     e.stopPropagation();
+    isResizing.current = true;
     dragRef.current = { edge, startX: e.clientX, startY: e.clientY, startW: size.w, startH: size.h };
 
     function onMove(ev) {
@@ -53,13 +55,20 @@ export default function ToolsPanel({ onClose, credentials, selectedProject, sele
       dragRef.current = null;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      // Delay reset so the overlay onClick check catches it
+      setTimeout(() => { isResizing.current = false; }, 50);
     }
 
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   }, [size]);
 
-  // ── Handle styles ────────────────────────────────────────────────────────────
+  const handleOverlayClick = () => {
+    if (isResizing.current) return;
+    onClose();
+  };
+
+  // ── Handle styles ─────────────────────────────────────────────────────────────
   const handle = (edge, cursor, style) => (
     <div
       onMouseDown={e => startResize(e, edge)}
@@ -67,26 +76,35 @@ export default function ToolsPanel({ onClose, credentials, selectedProject, sele
     />
   );
 
-  const THICK = 6;  // grab area thickness
+  const THICK = 6;
   const CORNER = 14;
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} onClick={handleOverlayClick}>
       <div
         style={{ ...styles.panel, width: size.w, height: size.h }}
         onClick={e => e.stopPropagation()}
       >
         {/* ── Resize handles ── */}
-        {/* Edges */}
         {handle("n",  "n-resize",  { top: 0,    left: CORNER, right: CORNER, height: THICK })}
         {handle("s",  "s-resize",  { bottom: 0, left: CORNER, right: CORNER, height: THICK })}
         {handle("e",  "e-resize",  { right: 0,  top: CORNER, bottom: CORNER, width: THICK })}
         {handle("w",  "w-resize",  { left: 0,   top: CORNER, bottom: CORNER, width: THICK })}
-        {/* Corners */}
         {handle("nw", "nw-resize", { top: 0,    left: 0,   width: CORNER, height: CORNER })}
         {handle("ne", "ne-resize", { top: 0,    right: 0,  width: CORNER, height: CORNER })}
         {handle("sw", "sw-resize", { bottom: 0, left: 0,   width: CORNER, height: CORNER })}
         {handle("se", "se-resize", { bottom: 0, right: 0,  width: CORNER, height: CORNER })}
+
+        {/* ── Corner resize handle (visual) ── */}
+        <div
+          onMouseDown={e => startResize(e, "se")}
+          style={styles.resizeHandle}
+          title="Drag to resize"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M11 1L1 11M11 6L6 11" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
 
         {/* ── Header ── */}
         <div style={styles.header}>
@@ -145,7 +163,6 @@ const styles = {
     backgroundColor: "var(--bg)", border: "1px solid var(--border)",
     borderRadius: "12px",
     display: "flex", flexDirection: "column",
-    // prevent text selection while dragging
     userSelect: "none",
   },
   header: {
@@ -175,5 +192,9 @@ const styles = {
   },
   hint: {
     color: "var(--text-dim)", fontSize: "0.95rem", marginTop: "40px", textAlign: "center",
+  },
+  resizeHandle: {
+    position: "absolute", bottom: "4px", right: "4px",
+    cursor: "se-resize", padding: "4px", opacity: 0.5, lineHeight: 0, zIndex: 11,
   },
 };
