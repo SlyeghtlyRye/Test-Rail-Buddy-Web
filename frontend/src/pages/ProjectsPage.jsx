@@ -76,6 +76,16 @@ export default function ProjectsPage() {
     setEditError("");
   }, [selectedCaseId]);
 
+  
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setToolsOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+
   const handleDeleteCase = async () => {
     if (!window.confirm(`Delete "${selectedCase.title}"? This cannot be undone.`)) return;
     try {
@@ -90,6 +100,7 @@ export default function ProjectsPage() {
       console.error("Failed to delete case", err);
     }
   };
+
 
   const handleOpenCase = async (c) => {
     setToolsOpen(false);
@@ -346,7 +357,7 @@ export default function ProjectsPage() {
           <div style={styles.rightPanel}>
             <div style={styles.panelHeader}>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
-                <span style={styles.label}>{editMode ? "Edit Case" : "Case Detail"}</span>
+                <span style={styles.label}>{editMode ? "Editing Case" : "Case Detail"}</span>
                 {selectedCase && (
                   <span style={styles.caseHeaderTitle}>{selectedCase.title}</span>
                 )}
@@ -459,5 +470,5 @@ const styles = {
   fieldValue: { color: "var(--text)", fontSize: "0.95rem" },
   blockText: { color: "var(--text)", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
   caseHeaderTitle: { color: "var(--text)", fontSize: "0.95rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
-  suitesScroll: { flex: 1, overflowY: "auto", marginTop: "4px" },
+  suitesScroll: { flex: 1, overflowY: "auto", marginTop: "4px", scrollbarWidth: "none", msOverflowStyle: "none" },
   caseCount: { marginLeft: "auto", fontSize: "0.75rem", color: "var(--text-dim)", backgroundColor: "var(--bg-panel)", padding: "1px 7px", borderRadius: "10px", flexShrink: 0 },};

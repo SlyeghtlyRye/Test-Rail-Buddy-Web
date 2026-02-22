@@ -213,14 +213,19 @@ export default function CaseForm({
         </div>
       )}
 
-      <div style={styles.field}>
+    <div style={styles.field}>
         <label style={styles.label}>Title *</label>
         <input style={styles.input} type="text" placeholder="Test case title" value={fields.title} onChange={e => set("title", e.target.value)} />
       </div>
 
       <div style={styles.field}>
+        <label style={styles.label}>Test Name</label>
+        <input style={styles.input} type="text" placeholder="e.g. verify_login_success" value={fields.custom_tc_name} onChange={e => set("custom_tc_name", e.target.value)} />
+      </div>
+
+      <div style={styles.field}>
         <label style={styles.label}>Test Case ID *</label>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <input
             style={{ ...styles.input, flex: 1 }}
             type="text"
@@ -229,7 +234,7 @@ export default function CaseForm({
             onChange={e => { set("custom_tc_test_case_id", e.target.value); setIdApplied(false); }}
           />
           <button
-            style={{ ...styles.btn, padding: "8px 12px", fontSize: "0.8rem", whiteSpace: "nowrap", minWidth: "64px", backgroundColor: idApplied ? "#22c55e" : "var(--accent)" }}
+            style={{ ...styles.btn, padding: "8px 12px", fontSize: "0.8rem", whiteSpace: "nowrap", minWidth: "64px", alignSelf: "stretch", backgroundColor: idApplied ? "#22c55e" : "var(--accent)" }}
             onClick={() => autoAssignId(false)}
             disabled={!selectedSection || idLoading}
             type="button"
@@ -239,25 +244,31 @@ export default function CaseForm({
         </div>
       </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Test Name</label>
-        <input style={styles.input} type="text" placeholder="e.g. verify_login_success" value={fields.custom_tc_name} onChange={e => set("custom_tc_name", e.target.value)} />
-      </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Category</label>
-        <input style={styles.input} type="text" placeholder="e.g. Smoke, Regression" value={fields.custom_tc_category} onChange={e => set("custom_tc_category", e.target.value)} />
-      </div>
 
-      {customFields.length > 0 && (
-        <div style={styles.collapseSection}>
-          <div style={styles.collapseHeader} onClick={() => setExtraOpen(o => !o)}>
-            <span style={styles.collapseIcon}>{extraOpen ? "▼" : "▶"}</span>
-            <span style={styles.collapseLabel}>Additional Fields ({customFields.length})</span>
-          </div>
-          {extraOpen && <div style={styles.collapseBody}>{customFields.map(renderDynamicField)}</div>}
+      <div style={styles.collapseSection}>
+        <div style={styles.collapseHeader} onClick={() => setExtraOpen(o => !o)}>
+          <span style={styles.collapseIcon}>{extraOpen ? "▼" : "▶"}</span>
+          <span style={styles.collapseLabel}>
+            Additional Fields ({customFields.length + 1})
+          </span>
         </div>
-      )}
+        {extraOpen && (
+          <div style={styles.collapseBody}>
+            <div style={styles.field}>
+              <label style={styles.label}>Category</label>
+              <input
+                style={styles.input}
+                type="text"
+                placeholder="e.g. Smoke, Regression"
+                value={fields.custom_tc_category}
+                onChange={e => set("custom_tc_category", e.target.value)}
+              />
+            </div>
+            {customFields.map(renderDynamicField)}
+          </div>
+        )}
+      </div>
 
       {[
         ["custom_preconds",    "Preconditions",   "Any preconditions before running this test"],
@@ -331,10 +342,10 @@ const styles = {
   btnCancel: { padding: "10px 20px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-muted)", fontSize: "0.9rem", cursor: "pointer" },
   btnDelete: { padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "#ef4444", color: "white", fontSize: "0.9rem", cursor: "pointer" },
   error: { color: "#f87171", fontSize: "0.85rem" },
-  collapseSection: { border: "1px solid var(--border)", borderRadius: "6px", overflow: "hidden" },
-  collapseHeader: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", cursor: "pointer", backgroundColor: "var(--bg-panel)" },
+  collapseSection: { border: "2px solid var(--accent)", borderRadius: "6px", overflow: "hidden", marginTop: "15px" },
+  collapseHeader: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", cursor: "pointer", backgroundColor: "var(--bg)" },
   collapseIcon: { color: "var(--text-muted)", fontSize: "0.7rem" },
-  collapseLabel: { color: "var(--text-muted)", fontSize: "0.85rem" },
+  collapseLabel: { color: "var(--text)", fontSize: "0.85rem" },
   collapseBody: { padding: "14px", display: "flex", flexDirection: "column", gap: "14px", borderTop: "1px solid var(--border)" },
   stickyFooter: { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "8px", zIndex: 10 },
 };
