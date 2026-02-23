@@ -41,30 +41,30 @@ const STATIC_EDGES = [
 ];
 
 const KNOWN_NODES = {
-  "browser":       { label: "Browser",          sub: "User Interface",               x: 500, y: 30,  color: "#64748b", group: "external" },
-  "app":           { label: "App.jsx",           sub: "Router + AuthProvider",        x: 500, y: 130, color: "#3b82f6", group: "frontend" },
-  "login":         { label: "LoginPage.jsx",     sub: "Login form",                   x: 260, y: 240, color: "#3b82f6", group: "frontend" },
-  "projects":      { label: "ProjectsPage.jsx",  sub: "Main 3-panel layout",          x: 500, y: 240, color: "#3b82f6", group: "frontend" },
-  "authctx":       { label: "AuthContext.jsx",   sub: "Credentials + sessionStorage", x: 760, y: 240, color: "#8b5cf6", group: "frontend" },
-  "toolspanel":    { label: "ToolsPanel.jsx",    sub: "Tools modal",                  x: 260, y: 370, color: "#14b8a6", group: "component" },
-  "createcase":    { label: "CreateCase.jsx",    sub: "Create test case",             x: 60,  y: 500, color: "#f97316", group: "tool" },
-  "createsection": { label: "CreateSection.jsx", sub: "Create section",               x: 220, y: 500, color: "#f97316", group: "tool" },
-  "export":        { label: "ExportCases.jsx",   sub: "Export CSV",                   x: 380, y: 500, color: "#f97316", group: "tool" },
-  "bulkids":       { label: "BulkEditIDs.jsx",   sub: "Bulk assign IDs",              x: 60,  y: 600, color: "#f97316", group: "tool" },
-  "fixnames":      { label: "FixTestNames.jsx",  sub: "Fix test names",               x: 220, y: 600, color: "#f97316", group: "tool" },
-  "convert":       { label: "ConvertFormat.jsx", sub: "Convert format",               x: 380, y: 600, color: "#f97316", group: "tool" },
-  "settings":      { label: "Settings.jsx",      sub: "Theme, API Test, Docs",        x: 60,  y: 700, color: "#f97316", group: "tool" },
-  "appstructure":  { label: "AppStructure.jsx",  sub: "Codebase map",                 x: 220, y: 700, color: "#f97316", group: "tool" },
-  "depmap":        { label: "DependencyMap.jsx", sub: "This map",                     x: 380, y: 700, color: "#f97316", group: "tool" },
-  "api":           { label: "api.js",            sub: "All HTTP calls",               x: 760, y: 370, color: "#eab308", group: "api" },
-  "indexcss":      { label: "index.css",         sub: "Global styles + CSS vars",     x: 560, y: 370, color: "#ec4899", group: "style" },
-  "fastapi":       { label: "FastAPI",           sub: "app/main.py",                  x: 760, y: 490, color: "#22c55e", group: "backend" },
-  "authapi":       { label: "auth.py",           sub: "/api/auth/verify",             x: 620, y: 600, color: "#22c55e", group: "backend" },
-  "projectsapi":   { label: "projects.py",       sub: "/api/projects/",               x: 760, y: 600, color: "#22c55e", group: "backend" },
-  "casesapi":      { label: "cases.py",          sub: "/api/cases/",                  x: 900, y: 600, color: "#22c55e", group: "backend" },
-  "toolsapi":      { label: "tools.py",          sub: "/api/tools/",                  x: 760, y: 700, color: "#22c55e", group: "backend" },
-  "structureapi":  { label: "structure.py",      sub: "/api/structure/",              x: 900, y: 700, color: "#22c55e", group: "backend" },
-  "testrail":      { label: "TestRail",          sub: "External API",                 x: 760, y: 800, color: "#64748b", group: "external" },
+  "browser":       { label: "Browser",          sub: "User Interface",               description: "The user's browser — entry point for all interaction with the app.",                                                                 x: 500, y: 30,  color: "#64748b", group: "external" },
+  "app":           { label: "App.jsx",           sub: "Router + AuthProvider",        description: "Top-level router wrapped in AuthProvider. Defines which URL maps to which page and guards protected routes.",                        x: 500, y: 130, color: "#3b82f6", group: "frontend" },
+  "login":         { label: "LoginPage.jsx",     sub: "Login form",                   description: "Captures TestRail credentials and calls /api/auth/verify before redirecting. The entry gate; nothing works without valid creds.",    x: 260, y: 240, color: "#3b82f6", group: "frontend" },
+  "projects":      { label: "ProjectsPage.jsx",  sub: "Main 3-panel layout",          description: "Main app shell with all navigation state. Every user action flows through this component.",                                          x: 500, y: 240, color: "#3b82f6", group: "frontend" },
+  "authctx":       { label: "AuthContext.jsx",   sub: "Credentials + sessionStorage", description: "Holds credentials and persists them to sessionStorage. Lets any component access auth state without prop drilling.",                x: 760, y: 240, color: "#8b5cf6", group: "frontend" },
+  "toolspanel":    { label: "ToolsPanel.jsx",    sub: "Tools modal",                  description: "Modal overlay that lists and renders all tool components. Acts as the single mount point so tools stay isolated from the main layout.", x: 260, y: 370, color: "#14b8a6", group: "component" },
+  "createcase":    { label: "CreateCase.jsx",    sub: "Create test case",             description: "Form to create a new test case inside a chosen section. Calls POST /api/cases/ and refreshes the case list on success.",             x: 60,  y: 500, color: "#f97316", group: "tool" },
+  "createsection": { label: "CreateSection.jsx", sub: "Create section",               description: "Form to create a section with optional parent nesting. Keeps the TestRail hierarchy intact when building out new suites.",           x: 220, y: 500, color: "#f97316", group: "tool" },
+  "export":        { label: "ExportCases.jsx",   sub: "Export CSV",                   description: "Fetches all cases for a project/suite and triggers a CSV download. Useful for offline reviews or importing into other tools.",       x: 380, y: 500, color: "#f97316", group: "tool" },
+  "bulkids":       { label: "BulkEditIDs.jsx",   sub: "Bulk assign IDs",              description: "Assigns sequential custom IDs to every case in a section in one shot. Saves hours of manual ID entry on large suites.",             x: 60,  y: 600, color: "#f97316", group: "tool" },
+  "fixnames":      { label: "FixTestNames.jsx",  sub: "Fix test names",               description: "Replaces spaces with underscores in test names across a section. Enforces naming conventions without editing cases one by one.",     x: 220, y: 600, color: "#f97316", group: "tool" },
+  "convert":       { label: "ConvertFormat.jsx", sub: "Convert format",               description: "Migrates cases from the old single-field step format to separated steps. Run once per legacy suite to unlock structured step editing.", x: 380, y: 600, color: "#f97316", group: "tool" },
+  "settings":      { label: "Settings.jsx",      sub: "Theme, API Test, Docs",        description: "Settings panel for theme switching, live API connectivity test, and app info. Also hosts AppStructure and DependencyMap.",           x: 60,  y: 700, color: "#f97316", group: "tool" },
+  "appstructure":  { label: "AppStructure.jsx",  sub: "Codebase map",                 description: "Interactive file tree showing every file with its documented status. Lets devs onboard without digging through folders.",            x: 220, y: 700, color: "#f97316", group: "tool" },
+  "depmap":        { label: "DependencyMap.jsx", sub: "This map",                     description: "SVG dependency graph showing how every component connects. Click a node to see what feeds it and what it feeds. (That's this!)",     x: 380, y: 700, color: "#f97316", group: "tool" },
+  "api":           { label: "api.js",            sub: "All HTTP calls",               description: "Single source of truth for all HTTP calls. Swap the base URL here and the whole app follows.",                                       x: 760, y: 370, color: "#eab308", group: "api" },
+  "indexcss":      { label: "index.css",         sub: "Global styles + CSS vars",     description: "Global stylesheet — CSS variables, reset, scrollbar styling, full-height layout. The visual foundation everything else inherits.",   x: 500, y: 370, color: "#ec4899", group: "style" },
+  "fastapi":       { label: "FastAPI",           sub: "app/main.py",                  description: "FastAPI entry point — creates the app instance and registers all routers. The first file the server loads.",                         x: 760, y: 490, color: "#22c55e", group: "backend" },
+  "authapi":       { label: "auth.py",           sub: "/api/auth/verify",             description: "Proxies credentials to TestRail and returns success/failure. First call on every login; blocks access if TestRail is unreachable.",  x: 620, y: 600, color: "#22c55e", group: "backend" },
+  "projectsapi":   { label: "projects.py",       sub: "/api/projects/",               description: "GET endpoints for projects, suites, and sections plus POST to create a section. The backbone of the left and middle panels.",        x: 760, y: 600, color: "#22c55e", group: "backend" },
+  "casesapi":      { label: "cases.py",          sub: "/api/cases/",                  description: "Full CRUD for test cases plus bulk-ID and name fixing. The most-called router — almost every tool touches it.",                      x: 900, y: 600, color: "#22c55e", group: "backend" },
+  "toolsapi":      { label: "tools.py",          sub: "/api/tools/",                  description: "POST /api/tools/export-csv and other utility endpoints. Handles heavier operations that don't fit standard CRUD.",                   x: 760, y: 700, color: "#22c55e", group: "backend" },
+  "structureapi":  { label: "structure.py",      sub: "/api/structure/",              description: "Scans the filesystem and returns a documented/undocumented file tree. Powers both AppStructure and DependencyMap.",                  x: 1020, y: 490, color: "#22c55e", group: "backend" },
+  "testrail":      { label: "TestRail",          sub: "External API",                 description: "The external TestRail REST API — the real data source. All backend routers ultimately call through here.",                           x: 760, y: 800, color: "#64748b", group: "external" },
 };
 
 const FILE_TO_NODE = Object.fromEntries(
@@ -85,17 +85,28 @@ const GROUP_LABELS = [
 const NODE_W = 150, NODE_H = 50;
 
 export default function DependencyMap() {
-  const [nodes, setNodes]           = useState([]);
+  const [nodes, setNodes]               = useState([]);
   const [undocumented, setUndocumented] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [selected, setSelected]     = useState(null);
-  const [hovered, setHovered]       = useState(null);
-  const [transform, setTransform]   = useState({ x: 0, y: 0, scale: 0.8 });
+  const [loading, setLoading]           = useState(true);
+  const originalNodes                   = useRef([]);
+  const [selected, setSelected]         = useState(null);
+  const [hovered, setHovered]           = useState(null);
+  const [transform, setTransform]       = useState({ x: 0, y: 0, scale: 0.8 });
 
-  const isPanning   = useRef(false);
-  const lastPos     = useRef({ x: 0, y: 0 });
-  const startPos    = useRef({ x: 0, y: 0 });
+  // Canvas pan refs
+  const isPanning    = useRef(false);
+  const lastPos      = useRef({ x: 0, y: 0 });
+  const startPos     = useRef({ x: 0, y: 0 });
   const containerRef = useRef(null);
+
+  // Node drag refs
+  const draggingNode = useRef(null);
+  const dragOffset   = useRef({ x: 0, y: 0 });
+  const didDragNode  = useRef(false);
+
+  // Keep transform in a ref so onMouseMove callbacks can read it without stale closures
+  const transformRef = useRef(transform);
+  useEffect(() => { transformRef.current = transform; }, [transform]);
 
   useEffect(() => {
     axios.get(`${BASE_URL}/api/structure/`)
@@ -108,20 +119,25 @@ export default function DependencyMap() {
         const knownList    = Object.entries(KNOWN_NODES).map(([id, n]) => ({ id, ...n }));
         const unknownFiles = all.filter(f => !f.documented && !FILE_TO_NODE[f.name]);
         const unknownNodes = unknownFiles.map((f, i) => ({
-          id:    `unknown_${i}`,
-          label: f.name,
-          sub:   "⚠ undocumented file",
-          x:     60 + (i % 5) * 170,
-          y:     920,
-          color: "#ef4444",
-          group: "undocumented",
+          id:          `unknown_${i}`,
+          label:       f.name,
+          sub:         "⚠ undocumented file",
+          description: "",
+          x:           60 + (i % 5) * 170,
+          y:           920,
+          color:       "#ef4444",
+          group:       "undocumented",
         }));
 
-        setNodes([...knownList, ...unknownNodes]);
+        const allNodes = [...knownList, ...unknownNodes];
+        originalNodes.current = allNodes;
+        setNodes(allNodes);
         setUndocumented(unknownFiles);
       })
       .catch(() => {
-        setNodes(Object.entries(KNOWN_NODES).map(([id, n]) => ({ id, ...n })));
+        const fallback = Object.entries(KNOWN_NODES).map(([id, n]) => ({ id, ...n }));
+        originalNodes.current = fallback;
+        setNodes(fallback);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -135,6 +151,7 @@ export default function DependencyMap() {
   const isConnected  = id => !selected || selected === id || edges.some(e => (e.from === selected && e.to === id) || (e.to === selected && e.from === id));
   const isEdgeActive = e  => { const a = selected || hovered; return !a || e.from === a || e.to === a; };
 
+  // ── Canvas pan ────────────────────────────────────────────────────────────
   const onMouseDown = useCallback(e => {
     if (e.target.closest(".node")) return;
     isPanning.current = true;
@@ -143,7 +160,20 @@ export default function DependencyMap() {
     e.preventDefault();
   }, []);
 
+  // ── Unified mouse move — handles both node drag and canvas pan ────────────
   const onMouseMove = useCallback(e => {
+    // Node dragging takes priority
+    if (draggingNode.current) {
+      didDragNode.current = true;
+      const t = transformRef.current;
+      const newX = (e.clientX - t.x) / t.scale - dragOffset.current.x;
+      const newY = (e.clientY - t.y) / t.scale - dragOffset.current.y;
+      setNodes(prev => prev.map(n =>
+        n.id === draggingNode.current ? { ...n, x: newX, y: newY } : n
+      ));
+      return;
+    }
+    // Canvas panning
     if (!isPanning.current) return;
     const dx = e.clientX - lastPos.current.x;
     const dy = e.clientY - lastPos.current.y;
@@ -178,12 +208,14 @@ export default function DependencyMap() {
 
   useEffect(() => {
     const up = e => {
+      // Canvas pan: if barely moved, treat as a deselect click
       if (isPanning.current) {
         const dx = Math.abs(e.clientX - startPos.current.x);
         const dy = Math.abs(e.clientY - startPos.current.y);
         if (dx < 3 && dy < 3) setSelected(null);
       }
-      isPanning.current = false;
+      isPanning.current    = false;
+      draggingNode.current = null;
     };
     window.addEventListener("mouseup", up);
     return () => window.removeEventListener("mouseup", up);
@@ -220,7 +252,11 @@ export default function DependencyMap() {
         {[
           { label: "+", fn: () => setTransform(t => ({ ...t, scale: Math.min(3, t.scale * 1.2) })) },
           { label: "−", fn: () => setTransform(t => ({ ...t, scale: Math.max(0.3, t.scale * 0.8) })) },
-          { label: "↺", fn: () => { const r = containerRef.current.getBoundingClientRect(); setTransform({ x: (r.width - svgWidth * 0.8) / 2 + 80, y: (r.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 }); }},
+          { label: "↺", fn: () => {
+              const r = containerRef.current.getBoundingClientRect();
+              setTransform({ x: (r.width - svgWidth * 0.8) / 2 + 80, y: (r.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 });
+              setNodes(originalNodes.current);
+            }},
         ].map(b => (
           <button key={b.label} onClick={b.fn} style={{ width: "32px", height: "32px", borderRadius: "6px", border: `1px solid ${border}`, backgroundColor: panel, color: text, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {b.label}
@@ -235,7 +271,7 @@ export default function DependencyMap() {
       )}
 
       <div style={{ position: "absolute", bottom: "20px", left: "12px", zIndex: 10, color: dim, fontSize: "0.72rem" }}>
-        Scroll to zoom · Drag to pan · Click node to highlight
+        Scroll to zoom · Drag canvas to pan · Drag nodes to rearrange · Click node to highlight
       </div>
 
       <svg width={svgWidth} height={svgHeight}
@@ -274,9 +310,26 @@ export default function DependencyMap() {
             : (isSel || isHov ? node.color : connected ? border : bg);
 
           return (
-            <g key={node.id} className="node" transform={`translate(${node.x}, ${node.y})`} style={{ cursor: "pointer" }}
-              onClick={e => { e.stopPropagation(); setSelected(isSel ? null : node.id); }}
-              onMouseEnter={() => setHovered(node.id)} onMouseLeave={() => setHovered(null)}
+            <g key={node.id} className="node" transform={`translate(${node.x}, ${node.y})`}
+              style={{ cursor: draggingNode.current === node.id ? "grabbing" : "grab" }}
+              onMouseDown={e => {
+                e.stopPropagation(); // prevent canvas pan firing
+                didDragNode.current  = false;
+                draggingNode.current = node.id;
+                const t = transformRef.current;
+                // Offset = mouse position in SVG space minus node's top-left
+                dragOffset.current = {
+                  x: (e.clientX - t.x) / t.scale - node.x,
+                  y: (e.clientY - t.y) / t.scale - node.y,
+                };
+              }}
+              onClick={e => {
+                e.stopPropagation();
+                // Only select if we didn't actually drag
+                if (!didDragNode.current) setSelected(isSel ? null : node.id);
+              }}
+              onMouseEnter={() => setHovered(node.id)}
+              onMouseLeave={() => setHovered(null)}
             >
               <rect width={NODE_W} height={NODE_H} rx={6}
                 fill={nodeBg} stroke={nodeStroke}
@@ -307,11 +360,11 @@ export default function DependencyMap() {
         const node = getNode(selected);
         if (!node) return null;
         const out = edges.filter(e => e.from === selected).map(e => getNode(e.to)).filter(Boolean);
-        const inc = edges.filter(e => e.to === selected).map(e => getNode(e.from)).filter(Boolean);
+        const inc = edges.filter(e => e.to   === selected).map(e => getNode(e.from)).filter(Boolean);
         return (
           <div style={{ position: "absolute", bottom: "20px", right: "70px", backgroundColor: panel, border: `1px solid ${node.color}`, borderRadius: "10px", padding: "16px", width: "240px", boxShadow: `0 0 20px ${node.color}33`, zIndex: 20 }}>
             <div style={{ color: node.color, fontWeight: "700", fontSize: "0.9rem", marginBottom: "4px" }}>{node.label}</div>
-            <div style={{ color: muted, fontSize: "0.75rem", marginBottom: "12px" }}>
+            <div style={{ color: muted, fontSize: "0.75rem", marginBottom: node.description ? "8px" : "12px" }}>
               {node.sub}
               {node.group === "undocumented" && (
                 <div style={{ color: "#ef4444", marginTop: "4px", fontSize: "0.72rem" }}>
@@ -319,6 +372,14 @@ export default function DependencyMap() {
                 </div>
               )}
             </div>
+
+            {/* Description */}
+            {node.description && (
+              <div style={{ color: text, fontSize: "0.78rem", lineHeight: "1.5", marginBottom: "12px", paddingBottom: "12px", borderBottom: `1px solid ${border}` }}>
+                {node.description}
+              </div>
+            )}
+
             {inc.length > 0 && (
               <div style={{ marginBottom: "8px" }}>
                 <div style={{ color: dim, fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Receives from</div>

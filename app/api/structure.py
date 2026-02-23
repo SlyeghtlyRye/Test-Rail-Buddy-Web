@@ -7,44 +7,52 @@ router = APIRouter()
 # Key = filename only (no path). Add new files here as the project grows.
 KNOWN = {
     # Frontend pages
-    "LoginPage.jsx":      "Login form, verifies credentials, redirects to /projects",
-    "ProjectsPage.jsx":   "Main app — three panel layout, all navigation logic, state management",
+    "LoginPage.jsx":      "Login form — captures TestRail credentials and calls /api/auth/verify before redirecting. The entry gate; nothing works without valid creds here.",
+    "ProjectsPage.jsx":   "Main app shell — three-panel layout (projects / suites+sections / cases) with all navigation state. Every user action flows through this component.",
+
     # Frontend components
-    "ToolsPanel.jsx":     "Modal overlay — lists all tools, renders active tool component",
+    "ToolsPanel.jsx":     "Modal overlay that lists and renders all tool components. Acts as the single mount point so tools stay isolated from the main layout.",
+
     # Frontend tools
-    "CreateCase.jsx":     "Form to create a new test case in a selected section",
-    "CreateSection.jsx":  "Form to create a new section, supports nesting under parent",
-    "ExportCases.jsx":    "Export all cases in project/suite to CSV download",
-    "BulkEditIDs.jsx":    "Assign sequential IDs to all cases in a section",
-    "FixTestNames.jsx":   "Replace spaces with underscores in test names",
-    "ConvertFormat.jsx":  "Convert old single-field steps to separated steps format",
-    "Settings.jsx":       "Settings panel — Theme, API Test, App Framework, Version",
-    "AppStructure.jsx":   "Interactive codebase map — embedded in Settings",
-    "DependencyMap.jsx":  "Interactive dependency graph — embedded in Settings",
-    "CaseForm.jsx":       "Shared form component for creating and editing test cases",
+    "CreateCase.jsx":     "Form to create a new test case inside a chosen section. Calls POST /api/cases/ and refreshes the case list on success.",
+    "CreateSection.jsx":  "Form to create a section with optional parent nesting. Keeps the TestRail hierarchy intact when building out new suites.",
+    "ExportCases.jsx":    "Fetches all cases for a project/suite and triggers a CSV download. Useful for offline reviews or importing into other tools.",
+    "BulkEditIDs.jsx":    "Assigns sequential custom IDs to every case in a section in one shot. Saves hours of manual ID entry on large suites.",
+    "FixTestNames.jsx":   "Replaces spaces with underscores in test names across a section. Enforces naming conventions without editing cases one by one.",
+    "ConvertFormat.jsx":  "Migrates cases from the old single-field step format to separated steps. Run once per legacy suite to unlock structured step editing.",
+    "Settings.jsx":       "Settings panel for theme switching, live API connectivity test, and app info. Also the host panel that embeds AppStructure and DependencyMap.",
+    "AppStructure.jsx":   "Interactive file tree showing every frontend/backend/infra file with its description and documented status. Lets devs onboard without digging through folders.",
+    "DependencyMap.jsx":  "SVG dependency graph showing how every component connects to the backend. Click a node to see exactly what feeds it and what it feeds.",
+    "CaseForm.jsx":       "Shared form used by both create and edit case flows. Centralises field validation so both tools stay in sync.",
+
     # Frontend root
-    "api.js":             "All API calls — verifyAuth, getProjects, getSuites, getSections, getCases",
-    "AuthContext.jsx":    "React context — stores credentials, persists to sessionStorage",
-    "App.jsx":            "Router setup with AuthProvider wrapper, defines routes",
-    "App.css":            "Component-scoped styles for App.jsx",
-    "index.css":          "Global styles — reset, scrollbars, thin scrollbars, full height layout",
-    "main.jsx":           "React entry point — mounts App into the DOM",
-    "theme.js":           "Theme definitions — color tokens for light and dark mode",
-    # Backend api
-    "auth.py":            "POST /api/auth/verify — validates TestRail credentials",
-    "projects.py":        "GET projects, suites, sections — also create section endpoint",
-    "cases.py":           "GET cases, GET/create/update/delete single case, bulk-ids, fix-names",
-    "tools.py":           "POST export-csv and other tool endpoints",
-    "structure.py":       "GET /api/structure/ — scans filesystem and returns file tree",
+    "api.js":             "Single source of truth for all HTTP calls — auth, projects, suites, sections, cases. Swap the base URL here and the whole app follows.",
+    "AuthContext.jsx":    "React context that holds credentials and persists them to sessionStorage. Lets any component access auth state without prop drilling.",
+    "App.jsx":            "Top-level router wrapped in AuthProvider. Defines which URL maps to which page and guards protected routes.",
+    "App.css":            "Component-scoped styles for App.jsx layout. Keep global overrides in index.css instead.",
+    "index.css":          "Global stylesheet — CSS variables, reset, scrollbar styling, full-height layout. The visual foundation everything else inherits from.",
+    "main.jsx":           "React entry point — mounts <App /> into the DOM. Rarely needs editing but must exist for Vite to boot the app.",
+    "theme.js":           "Defines light and dark colour tokens. Update palette here to retheme the entire app in one place.",
+
+    # Backend API
+    "auth.py":            "POST /api/auth/verify — proxies credentials to TestRail and returns success/failure. First call made on every login; blocks access if TestRail is unreachable.",
+    "projects.py":        "GET endpoints for projects, suites, and sections, plus POST to create a section. The backbone of the left and middle panels in ProjectsPage.",
+    "cases.py":           "Full CRUD for test cases plus bulk-ID assignment and name fixing. The most-called router — almost every tool touches it.",
+    "tools.py":           "POST /api/tools/export-csv and other utility endpoints. Handles heavier operations that don't fit the standard CRUD pattern.",
+    "structure.py":       "GET /api/structure/ — scans the filesystem and returns a documented/undocumented file tree. Powers both AppStructure and DependencyMap.",
+
     # Backend core
-    "config.py":          "App settings — CORS origins, environment variables",
-    "testrail_client.py": "TestRail API client wrapper — handles auth and requests",
+    "config.py":          "Loads environment variables and sets CORS origins. Change allowed origins here when deploying to a new domain.",
+    "testrail_client.py": "Thin wrapper around the TestRail REST API handling auth headers and error normalisation. Every router goes through this — it's the bridge to the real data.",
+
     # Backend models / services
-    "schemas.py":         "Pydantic request/response models for all endpoints",
+    "schemas.py":         "Pydantic models for all request bodies and responses. Keeps the API contract explicit and validates data before it hits any business logic.",
+
     # Backend root
-    "main.py":            "FastAPI app entry point — registers all routers",
-    "__init__.py":        "Python package marker — required for app module imports",
+    "main.py":            "FastAPI entry point — creates the app instance and registers all routers. The first file the server loads; misconfiguring it breaks everything.",
+    "__init__.py":        "Marks the app directory as a Python package. Required for relative imports between modules to resolve correctly.",
 }
+
 
 # Folders to skip entirely
 SKIP_DIRS = {
