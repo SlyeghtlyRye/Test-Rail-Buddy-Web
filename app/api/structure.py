@@ -18,6 +18,7 @@ KNOWN = {
     "CreateSection.jsx":  "Form to create a section with optional parent nesting. Keeps the TestRail hierarchy intact when building out new suites.",
     "ExportCases.jsx":    "Fetches all cases for a project/suite and triggers a CSV download. Useful for offline reviews or importing into other tools.",
     "BulkEditIDs.jsx":    "Assigns sequential custom IDs to every case in a section in one shot. Saves hours of manual ID entry on large suites.",
+    "BulkEditType.jsx":   "Tree-based bulk type editor — renders a collapsible section/case tree with tri-state checkboxes, lazy-loads cases per section on expand, and batch-updates type_id via POST /api/cases/bulk-update.",
     "FixTestNames.jsx":   "Replaces spaces with underscores in test names across a section. Enforces naming conventions without editing cases one by one.",
     "ConvertFormat.jsx":  "Migrates cases from the old single-field step format to separated steps. Run once per legacy suite to unlock structured step editing.",
     "Settings.jsx":       "Settings panel for theme switching, live API connectivity test, and app info. Also the host panel that embeds AppStructure and DependencyMap.",

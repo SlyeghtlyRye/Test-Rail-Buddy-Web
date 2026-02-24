@@ -28,12 +28,10 @@ export default function ConvertFormat({ credentials, selectedProject, selectedSu
   useEffect(() => {
     if (!selectedProject || allSections.length > 0) return;
     setSectionsLoading(true);
-    axios.post(`${BASE_URL}/api/sections/`, {
-      ...credentials,
-      project_id: selectedProject.id,
-      suite_id: selectedSuite?.id || null,
+    axios.post(`${BASE_URL}/api/projects/${selectedProject.id}/sections`, credentials, {
+      params: { suite_id: selectedSuite?.id || undefined }
     })
-      .then(res => setAllSections(res.data.sections ?? res.data ?? []))
+      .then(res => setAllSections(Array.isArray(res.data) ? res.data : (res.data.sections ?? [])))
       .catch(() => {})
       .finally(() => setSectionsLoading(false));
   }, [selectedProject, selectedSuite]);

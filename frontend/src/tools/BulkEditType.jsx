@@ -48,13 +48,18 @@ function Checkbox({ checked, indeterminate, onChange, disabled }) {
       checked={checked}
       onChange={onChange}
       disabled={disabled}
+      onClick={e => e.stopPropagation()}
       style={{ cursor: disabled ? "default" : "pointer", width: 14, height: 14, flexShrink: 0 }}
     />
   );
 }
 
 // ── Section node ──────────────────────────────────────────────────────────────
-function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, selectedIds, onToggleSection, onToggleCase, collapsed, onToggleCollapse }) {
+function SectionNode({
+  node, depth, casesBySection, fetchedIds, loadingIds,
+  selectedIds, onToggleSection, onToggleCase,
+  collapsed, onToggleCollapse,
+}) {
   const cases         = casesBySection[node.id] ?? [];
   const allIds        = caseIdsUnderNode(node, casesBySection);
   const selectedCount = allIds.filter(id => selectedIds.has(id)).length;
@@ -67,7 +72,6 @@ function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, sele
 
   return (
     <div>
-      {/* Section header */}
       <div style={{ ...styles.sectionRow, paddingLeft: 8 + depth * 18 }}>
         <Checkbox
           checked={allChecked}
@@ -75,10 +79,7 @@ function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, sele
           disabled={isLoading}
           onChange={() => onToggleSection(node, allChecked || indeterminate)}
         />
-        <span
-          style={styles.chevron}
-          onClick={() => onToggleCollapse(node.id)}
-        >
+        <span style={styles.chevron} onClick={() => onToggleCollapse(node.id)}>
           {isCollapsed ? "▶" : "▼"}
         </span>
         <span
@@ -91,14 +92,14 @@ function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, sele
           <span style={styles.pill}>loading…</span>
         ) : isFetched ? (
           <span style={styles.pill}>
-            {selectedCount > 0 ? `${selectedCount}/` : ""}{allIds.length} case{allIds.length !== 1 ? "s" : ""}
+            {selectedCount > 0 ? `${selectedCount}/` : ""}
+            {allIds.length} case{allIds.length !== 1 ? "s" : ""}
           </span>
         ) : (
           <span style={{ ...styles.pill, fontStyle: "italic" }}>click to load</span>
         )}
       </div>
 
-      {/* Cases + child sections */}
       {!isCollapsed && (
         <div>
           {cases.map(c => {
@@ -112,12 +113,12 @@ function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, sele
                   paddingLeft: 8 + (depth + 1) * 18,
                   backgroundColor: sel ? "var(--accent)11" : "transparent",
                 }}
-                onClick={e => { e.stopPropagation(); onToggleCase(c.id); }}
+                onClick={() => onToggleCase(c.id)}
               >
                 <Checkbox
                   checked={sel}
                   indeterminate={false}
-                  onChange={e => { e.stopPropagation(); onToggleCase(c.id); }}
+                  onChange={() => onToggleCase(c.id)}
                 />
                 <span style={styles.caseTitle}>{title}</span>
                 <span style={styles.caseType}>{typeLabel(c.type_id)}</span>
@@ -126,7 +127,9 @@ function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, sele
           })}
           {isFetched && cases.length === 0 && node.children.length === 0 && (
             <div style={{ ...styles.caseRow, paddingLeft: 8 + (depth + 1) * 18, cursor: "default" }}>
-              <span style={{ color: "var(--text-dim)", fontSize: "0.78rem", fontStyle: "italic" }}>No cases in this section</span>
+              <span style={{ color: "var(--text-dim)", fontSize: "0.78rem", fontStyle: "italic" }}>
+                No cases in this section
+              </span>
             </div>
           )}
           {node.children.map(child => (
@@ -151,53 +154,62 @@ function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, sele
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function BulkEditType({ credentials, selectedProject, selectedSuite, selectedSection, sections = [] }) {
-  const [allSections, setAllSections]         = useState(sections);
+export default function BulkEditType({
+  credentials, selectedProject, selectedSuite, sections = [],
+}) {
+  // ── Suite state ────────────────────────────────────────────────────────
+  const [suites, setSuites]               = useState([]);
+  const [suitesLoading, setSuitesLoading] = useState(false);
+  const [activeSuite, setActiveSuite]     = useState(selectedSuite ?? null);
+
+  // ── Section state ──────────────────────────────────────────────────────
+  const [allSections, setAllSections]         = useState([]);
   const [sectionsLoading, setSectionsLoading] = useState(false);
 
+  // Refs — always current, no stale closures
   const casesBySectionRef = useRef({});
   const fetchedIdsRef     = useRef(new Set());
   const loadingIdsRef     = useRef(new Set());
 
+  // State mirrors of refs for rendering
   const [casesBySection, setCasesBySection] = useState({});
   const [fetchedIds, setFetchedIds]         = useState(new Set());
   const [loadingIds, setLoadingIds]         = useState(new Set());
 
-  // Default all sections to collapsed
-  const [collapsed, setCollapsed]     = useState(new Set(sections.map(s => s.id)));
+  // All sections collapsed by default
+  const [collapsed, setCollapsed]     = useState(new Set());
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const [targetType, setTargetType] = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [results, setResults]       = useState(null);
-  const [error, setError]           = useState("");
+  // Preview / confirm
+  const [targetType, setTargetType]   = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [results, setResults]         = useState(null);
+  const [error, setError]             = useState("");
 
-  // ── Sync sections prop — collapse all on update ─────────────────────────
+  // ── Fetch suites when project changes ─────────────────────────────────
   useEffect(() => {
-    setAllSections(sections);
-    setCollapsed(new Set(sections.map(s => s.id)));
-  }, [sections]);
-
-  // ── Self-fetch sections if not provided ────────────────────────────────
-  useEffect(() => {
-    if (!selectedProject || allSections.length > 0) return;
-    setSectionsLoading(true);
-    axios.post(`${BASE_URL}/api/sections/`, {
-      ...credentials,
-      project_id: selectedProject.id,
-      suite_id: selectedSuite?.id || null,
+    if (!selectedProject) return;
+    setSuitesLoading(true);
+    axios.post(`${BASE_URL}/api/projects/${selectedProject.id}/suites`, {
+    ...credentials,
     })
       .then(res => {
-        const fetched = res.data.sections ?? res.data ?? [];
-        setAllSections(fetched);
-        setCollapsed(new Set(fetched.map(s => s.id)));  // default all collapsed
+        const data = res.data.suites ?? res.data ?? [];
+        setSuites(data);
+        // Default to the passed-in suite, or first available
+        if (selectedSuite) {
+          setActiveSuite(selectedSuite);
+        } else if (data.length > 0) {
+          setActiveSuite(data[0]);
+        }
       })
-      .catch(() => {})
-      .finally(() => setSectionsLoading(false));
-  }, [selectedProject, selectedSuite]);
+      .catch(() => setSuites([]))
+      .finally(() => setSuitesLoading(false));
+  }, [selectedProject?.id]);
 
-  // ── Full reset on project/suite change ─────────────────────────────────
-  useEffect(() => {
+  // ── Full tree reset helper ─────────────────────────────────────────────
+  const resetTree = useCallback(() => {
     casesBySectionRef.current = {};
     fetchedIdsRef.current     = new Set();
     loadingIdsRef.current     = new Set();
@@ -205,10 +217,37 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
     setFetchedIds(new Set());
     setLoadingIds(new Set());
     setSelectedIds(new Set());
-    setCollapsed(new Set());
+    setCollapsed(new Set());   // sections will be set to collapsed after sections load
+    setShowPreview(false);
     setResults(null);
     setError("");
-  }, [selectedProject?.id, selectedSuite?.id]);
+  }, []);
+
+  // ── Fetch sections when suite changes ─────────────────────────────────
+  useEffect(() => {
+    if (!selectedProject || !activeSuite) return;
+    resetTree();
+    setSectionsLoading(true);
+    axios.post(
+    `${BASE_URL}/api/projects/${selectedProject.id}/sections${activeSuite?.id ? `?suite_id=${activeSuite.id}` : ""}`,
+    { ...credentials }
+    )
+      .then(res => {
+        const fetched = res.data.sections ?? res.data ?? [];
+        setAllSections(fetched);
+        // Collapse ALL sections — nothing auto-loads
+        setCollapsed(new Set(fetched.map(s => s.id)));
+      })
+      .catch(() => setAllSections([]))
+      .finally(() => setSectionsLoading(false));
+  }, [selectedProject?.id, activeSuite?.id]);
+
+  // Also use sections prop as a fallback if no suite-based fetch needed
+  useEffect(() => {
+    if (activeSuite || sections.length === 0) return;
+    setAllSections(sections);
+    setCollapsed(new Set(sections.map(s => s.id)));
+  }, [sections]);
 
   const sectionTree = buildTree(allSections);
 
@@ -224,32 +263,31 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
       const res = await axios.post(`${BASE_URL}/api/cases/`, {
         ...credentials,
         project_id: selectedProject.id,
-        suite_id:   selectedSuite?.id || null,
+        suite_id:   activeSuite?.id ?? null,
         section_id: sectionId,
       });
-      const cases = res.data.cases ?? [];
-      casesBySectionRef.current = { ...casesBySectionRef.current, [sectionId]: cases };
-      setCasesBySection({ ...casesBySectionRef.current });
+      casesBySectionRef.current = { ...casesBySectionRef.current, [sectionId]: res.data.cases ?? [] };
     } catch {
       casesBySectionRef.current = { ...casesBySectionRef.current, [sectionId]: [] };
-      setCasesBySection({ ...casesBySectionRef.current });
     }
 
     fetchedIdsRef.current = new Set([...fetchedIdsRef.current, sectionId]);
     loadingIdsRef.current = new Set([...loadingIdsRef.current].filter(id => id !== sectionId));
+
+    setCasesBySection({ ...casesBySectionRef.current });
     setFetchedIds(new Set(fetchedIdsRef.current));
     setLoadingIds(new Set(loadingIdsRef.current));
-  }, [credentials, selectedProject, selectedSuite]);
+  }, [credentials, selectedProject, activeSuite]);
 
-  // ── Collapse toggle — fetch on first expand ────────────────────────────
+  // ── Collapse toggle — ONLY fetches on expand, never auto-opens ─────────
   const handleToggleCollapse = useCallback((sectionId) => {
     setCollapsed(prev => {
       const next = new Set(prev);
       if (next.has(sectionId)) {
-        next.delete(sectionId);   // expanding — fetch if needed
+        next.delete(sectionId); // expanding → fetch if needed
         fetchCases(sectionId);
       } else {
-        next.add(sectionId);      // collapsing
+        next.add(sectionId);    // collapsing
       }
       return next;
     });
@@ -262,25 +300,25 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
       next.has(caseId) ? next.delete(caseId) : next.add(caseId);
       return next;
     });
+    setShowPreview(false);
     setResults(null);
     setError("");
   }, []);
 
-  // ── Toggle section — fetch all descendants first, then bulk select ─────
+  // ── Toggle section — fetch all descendants then bulk select/deselect ───
   const handleToggleSection = useCallback(async (node, deselect) => {
     const sectionIds = collectSectionIds(node);
     const unloaded   = sectionIds.filter(id => !fetchedIdsRef.current.has(id));
-
     if (unloaded.length > 0) {
       await Promise.all(unloaded.map(id => fetchCases(id)));
     }
-
     const allCaseIds = sectionIds.flatMap(id => (casesBySectionRef.current[id] ?? []).map(c => c.id));
     setSelectedIds(prev => {
       const next = new Set(prev);
       allCaseIds.forEach(id => deselect ? next.delete(id) : next.add(id));
       return next;
     });
+    setShowPreview(false);
     setResults(null);
     setError("");
   }, [fetchCases]);
@@ -291,40 +329,84 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
 
   const handleSelectAll = () => {
     setSelectedIds(allSelected ? new Set() : new Set(allCaseIds));
+    setShowPreview(false);
     setResults(null);
     setError("");
   };
 
+  // ── Preview list ───────────────────────────────────────────────────────
+  const selectedCases = Object.values(casesBySection)
+    .flat()
+    .filter(c => selectedIds.has(c.id));
+
   // ── Apply ──────────────────────────────────────────────────────────────
-  const handleApply = async () => {
-    if (!canApply) return;
+    const handleApply = async () => {
+    if (selectedIds.size === 0 || !targetType) return;
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${BASE_URL}/api/cases/bulk-update`, {
-        ...credentials,
-        case_ids: [...selectedIds],
-        fields: { type_id: Number(targetType) },
-      });
-      setResults(res.data);
-      setSelectedIds(new Set());
+        const caseIds = [...selectedIds];
+        const settled = await Promise.allSettled(
+        caseIds.map(id =>
+            axios.post(`${BASE_URL}/api/cases/${id}/update`, {
+            ...credentials,
+            fields: { type_id: Number(targetType) },
+            })
+        )
+        );
+        const results = settled.map((r, i) => ({
+        case_id: caseIds[i],
+        ok:      r.status === "fulfilled",
+        error:   r.status === "rejected" ? r.reason?.message : null,
+        }));
+        setResults({
+        updated: results.filter(r => r.ok).length,
+        errors:  results.filter(r => !r.ok).length,
+        results,
+        });
+        setShowPreview(false);
+        setSelectedIds(new Set());
     } catch {
-      setError("Bulk update failed. Please try again.");
+        setError("Bulk update failed. Please try again.");
     }
     setLoading(false);
-  };
+    };
 
-  const canApply = selectedIds.size > 0 && !!targetType && !loading;
+  const canPreview = selectedIds.size > 0 && !!targetType;
+  const newType    = typeLabel(targetType);
 
   return (
     <div style={styles.container}>
       <h3 style={styles.heading}>Bulk Edit Case Type</h3>
       <p style={styles.description}>
-        Select cases from the tree below, pick a target type, then apply.
+        Select cases from the tree below, pick a target type, then preview and apply.
       </p>
 
       {!selectedProject && (
         <div style={styles.warningBox}>Please select a project from the left panel first.</div>
+      )}
+
+      {/* ── Suite selector ───────────────────────────────────────────────── */}
+      {selectedProject && (
+        <div style={styles.field}>
+          <label style={styles.label}>Suite</label>
+          <select
+            style={styles.select}
+            value={activeSuite?.id ?? ""}
+            onChange={e => {
+              const id    = parseInt(e.target.value, 10);
+              const found = suites.find(s => s.id === id) ?? null;
+              setActiveSuite(found);
+            }}
+            disabled={suitesLoading}
+          >
+            {suitesLoading && <option disabled>Loading suites…</option>}
+            {!activeSuite && !suitesLoading && <option value="">— Select a suite —</option>}
+            {suites.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
       )}
 
       {/* ── Target type ──────────────────────────────────────────────────── */}
@@ -333,7 +415,7 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
         <select
           style={styles.select}
           value={targetType}
-          onChange={e => setTargetType(e.target.value)}
+          onChange={e => { setTargetType(e.target.value); setShowPreview(false); setResults(null); }}
           disabled={!selectedProject}
         >
           <option value="">— Choose target type —</option>
@@ -346,7 +428,7 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
       {/* ── Case tree ────────────────────────────────────────────────────── */}
       <div style={styles.field}>
         <div style={styles.treeHeader}>
-          <label style={styles.label}>Cases</label>
+          <label style={styles.label}>Cases & Sections</label>
           {allCaseIds.length > 0 && (
             <div style={styles.treeActions}>
               <span style={styles.selectedCount}>{selectedIds.size} selected</span>
@@ -364,7 +446,10 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
           {sectionsLoading && (
             <p style={styles.placeholder}>Loading sections…</p>
           )}
-          {selectedProject && !sectionsLoading && sectionTree.length === 0 && (
+          {selectedProject && !sectionsLoading && !activeSuite && (
+            <p style={styles.placeholder}>Select a suite above to load sections.</p>
+          )}
+          {selectedProject && !sectionsLoading && activeSuite && sectionTree.length === 0 && (
             <p style={styles.placeholder}>No sections found.</p>
           )}
           {sectionTree.map(node => (
@@ -387,19 +472,52 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
 
       {error && <p style={styles.error}>{error}</p>}
 
-      {/* ── Apply button ─────────────────────────────────────────────────── */}
-      {!results && (
+      {/* ── Preview button ────────────────────────────────────────────────── */}
+      {!showPreview && !results && (
         <button
-          style={{ ...styles.btn, opacity: canApply ? 1 : 0.4 }}
-          onClick={handleApply}
-          disabled={!canApply}
+          style={{ ...styles.btn, opacity: canPreview ? 1 : 0.4 }}
+          onClick={() => setShowPreview(true)}
+          disabled={!canPreview}
         >
-          {loading
-            ? "Applying…"
-            : canApply
-              ? `Set ${selectedIds.size} case${selectedIds.size !== 1 ? "s" : ""} → ${typeLabel(targetType)}`
-              : "Apply Changes"}
+          Preview Changes
         </button>
+      )}
+
+      {/* ── Preview table ─────────────────────────────────────────────────── */}
+      {showPreview && !results && (
+        <div style={styles.previewBox}>
+          <p style={styles.previewHeader}>
+            Preview —{" "}
+            <span style={{ color: "var(--text-muted)" }}>{selectedCases.length} cases</span>
+            {" "}→{" "}
+            <span style={{ color: "#22c55e" }}>{newType}</span>
+          </p>
+          <div style={styles.previewList}>
+            {selectedCases.map(c => {
+              const oldType = typeLabel(c.type_id);
+              const title   = c.title?.length > 38 ? c.title.slice(0, 35) + "…" : (c.title || "Untitled");
+              const same    = String(c.type_id) === String(targetType);
+              return (
+                <div key={c.id} style={{ ...styles.previewRow, opacity: same ? 0.45 : 1 }}>
+                  <span style={styles.previewOld}>{oldType}</span>
+                  <span style={styles.arrow}>{same ? "·" : "→"}</span>
+                  <span style={same ? styles.previewSkip : styles.previewNew}>
+                    {same ? oldType : newType}
+                  </span>
+                  <span style={styles.previewTitle}>{title}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={styles.previewActions}>
+            <button style={styles.btnSecondary} onClick={() => setShowPreview(false)} disabled={loading}>
+              Cancel
+            </button>
+            <button style={styles.btn} onClick={handleApply} disabled={loading}>
+              {loading ? "Applying…" : `Apply to ${selectedCases.length} Cases`}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ── Results ──────────────────────────────────────────────────────── */}
@@ -427,7 +545,7 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
                 <span style={styles.resultText}>
                   {r.skipped
                     ? `Case ${r.case_id} skipped`
-                    : `Case ${r.case_id} → ${typeLabel(targetType)}`}
+                    : `Case ${r.case_id} → ${newType}`}
                   {r.error && <span style={{ color: "#f87171" }}> ({r.error})</span>}
                 </span>
               </div>
@@ -462,7 +580,7 @@ const styles = {
   treeBox: {
     border: "1px solid var(--border)", borderRadius: "6px",
     backgroundColor: "var(--bg-panel)",
-    minHeight: 100, maxHeight: 380, overflowY: "auto",
+    minHeight: 100, maxHeight: 360, overflowY: "auto",
   },
   placeholder: {
     color: "var(--text-dim)", fontSize: "0.85rem",
@@ -490,16 +608,14 @@ const styles = {
   caseRow: {
     display: "flex", alignItems: "center", gap: "8px",
     padding: "4px 8px", borderBottom: "1px solid var(--border)",
-    cursor: "pointer", userSelect: "none",
-    transition: "background 0.1s",
+    cursor: "pointer", userSelect: "none", transition: "background 0.1s",
   },
   caseTitle: {
     flex: 1, color: "var(--text-muted)", fontSize: "0.8rem",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   },
   caseType: {
-    color: "var(--text-dim)", fontSize: "0.7rem",
-    fontFamily: "monospace", flexShrink: 0,
+    color: "var(--text-dim)", fontSize: "0.7rem", fontFamily: "monospace", flexShrink: 0,
   },
   btn: {
     padding: "10px 20px", borderRadius: "6px", border: "none",
@@ -516,6 +632,26 @@ const styles = {
     backgroundColor: "var(--bg-panel)", border: "1px solid #f97316",
     borderRadius: "6px", padding: "10px 14px", color: "#f97316", fontSize: "0.85rem",
   },
+  previewBox: {
+    backgroundColor: "var(--bg-panel)", borderRadius: "6px",
+    padding: "12px", display: "flex", flexDirection: "column", gap: "8px",
+  },
+  previewHeader:  { color: "var(--text)", fontSize: "0.88rem", margin: 0 },
+  previewList: {
+    display: "flex", flexDirection: "column", gap: "3px",
+    maxHeight: "220px", overflowY: "auto",
+  },
+  previewRow: {
+    display: "grid", gridTemplateColumns: "140px 20px 140px 1fr",
+    alignItems: "center", gap: "8px",
+    padding: "3px 4px", borderRadius: "4px", minWidth: 0,
+  },
+  previewOld:     { color: "var(--text-muted)", fontSize: "0.8rem", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  arrow:          { color: "var(--text-dim)", fontSize: "0.8rem", textAlign: "center" },
+  previewNew:     { color: "#22c55e", fontSize: "0.8rem", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  previewSkip:    { color: "var(--text-dim)", fontSize: "0.8rem", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  previewTitle:   { color: "var(--text-dim)", fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingLeft: "4px", borderLeft: "1px solid var(--border)" },
+  previewActions: { display: "flex", gap: "8px", marginTop: "4px" },
   results: {
     backgroundColor: "var(--bg-panel)", borderRadius: "6px", padding: "12px",
     display: "flex", flexDirection: "column", gap: "8px",
