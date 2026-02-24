@@ -1,527 +1,390 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
 
 const BASE_URL = "http://localhost:8000";
 
-const CASE_TYPES = [
-  { id: 1,  label: "Automated" },
-  { id: 2,  label: "Functionality" },
-  { id: 3,  label: "Other" },
-  { id: 4,  label: "Performance" },
-  { id: 5,  label: "Regression" },
-  { id: 6,  label: "Security" },
-  { id: 7,  label: "Smoke & Sanity" },
-  { id: 8,  label: "Usability" },
-  { id: 9,  label: "Acceptance" },
-  { id: 10, label: "Accessibility" },
+const STATIC_EDGES = [
+  { from: "browser",       to: "app" },
+  { from: "app",           to: "login" },
+  { from: "app",           to: "projects" },
+  { from: "app",           to: "authctx" },
+  { from: "projects",      to: "toolspanel" },
+  { from: "projects",      to: "api" },
+  { from: "projects",      to: "indexcss" },
+  { from: "login",         to: "api" },
+  { from: "toolspanel",    to: "createcase" },
+  { from: "toolspanel",    to: "createsection" },
+  { from: "toolspanel",    to: "export" },
+  { from: "toolspanel",    to: "bulkids" },
+  { from: "toolspanel",    to: "fixnames" },
+  { from: "toolspanel",    to: "convert" },
+  { from: "toolspanel",    to: "bulktype" },
+  { from: "toolspanel",    to: "settings" },
+  { from: "toolspanel",    to: "appstructure" },
+  { from: "toolspanel",    to: "depmap" },
+  { from: "createcase",    to: "api" },
+  { from: "createsection", to: "api" },
+  { from: "export",        to: "api" },
+  { from: "bulkids",       to: "api" },
+  { from: "fixnames",      to: "api" },
+  { from: "convert",       to: "api" },
+  { from: "bulktype",      to: "api" },
+  { from: "authctx",       to: "api" },
+  { from: "api",           to: "fastapi" },
+  { from: "fastapi",       to: "authapi" },
+  { from: "fastapi",       to: "projectsapi" },
+  { from: "fastapi",       to: "casesapi" },
+  { from: "fastapi",       to: "toolsapi" },
+  { from: "fastapi",       to: "structureapi" },
+  { from: "authapi",       to: "testrail" },
+  { from: "projectsapi",   to: "testrail" },
+  { from: "casesapi",      to: "testrail" },
+  { from: "toolsapi",      to: "testrail" },
 ];
 
-function typeLabel(id) {
-  return CASE_TYPES.find(t => String(t.id) === String(id))?.label ?? `Type ${id}`;
-}
+const KNOWN_NODES = {
+  "browser":       { label: "Browser",          sub: "User Interface",               description: "The user's browser — entry point for all interaction with the app.",                                                                 x: 500, y: 30,  color: "#64748b", group: "external" },
+  "app":           { label: "App.jsx",           sub: "Router + AuthProvider",        description: "Top-level router wrapped in AuthProvider. Defines which URL maps to which page and guards protected routes.",                        x: 500, y: 130, color: "#3b82f6", group: "frontend" },
+  "login":         { label: "LoginPage.jsx",     sub: "Login form",                   description: "Captures TestRail credentials and calls /api/auth/verify before redirecting. The entry gate; nothing works without valid creds.",    x: 260, y: 240, color: "#3b82f6", group: "frontend" },
+  "projects":      { label: "ProjectsPage.jsx",  sub: "Main 3-panel layout",          description: "Main app shell with all navigation state. Every user action flows through this component.",                                          x: 500, y: 240, color: "#3b82f6", group: "frontend" },
+  "authctx":       { label: "AuthContext.jsx",   sub: "Credentials + sessionStorage", description: "Holds credentials and persists them to sessionStorage. Lets any component access auth state without prop drilling.",                x: 760, y: 240, color: "#8b5cf6", group: "frontend" },
+  "toolspanel":    { label: "ToolsPanel.jsx",    sub: "Tools modal",                  description: "Modal overlay that lists and renders all tool components. Acts as the single mount point so tools stay isolated from the main layout.", x: 260, y: 370, color: "#14b8a6", group: "component" },
+  "createcase":    { label: "CreateCase.jsx",    sub: "Create test case",             description: "Form to create a new test case inside a chosen section. Calls POST /api/cases/ and refreshes the case list on success.",             x: 60,  y: 500, color: "#f97316", group: "tool" },
+  "createsection": { label: "CreateSection.jsx", sub: "Create section",               description: "Form to create a section with optional parent nesting. Keeps the TestRail hierarchy intact when building out new suites.",           x: 220, y: 500, color: "#f97316", group: "tool" },
+  "export":        { label: "ExportCases.jsx",   sub: "Export CSV",                   description: "Fetches all cases for a project/suite and triggers a CSV download. Useful for offline reviews or importing into other tools.",       x: 380, y: 500, color: "#f97316", group: "tool" },
+  "bulkids":       { label: "BulkEditIDs.jsx",   sub: "Bulk assign IDs",              description: "Assigns sequential custom IDs to every case in a section in one shot. Saves hours of manual ID entry on large suites.",             x: 60,  y: 600, color: "#f97316", group: "tool" },
+  "fixnames":      { label: "FixTestNames.jsx",  sub: "Fix test names",               description: "Replaces spaces with underscores in test names across a section. Enforces naming conventions without editing cases one by one.",     x: 220, y: 600, color: "#f97316", group: "tool" },
+  "convert":       { label: "ConvertFormat.jsx", sub: "Convert format",               description: "Migrates cases from the old single-field step format to separated steps. Run once per legacy suite to unlock structured step editing.", x: 380, y: 600, color: "#f97316", group: "tool" },
+  "bulktype":      { label: "BulkEditType.jsx",  sub: "Bulk set case type",           description: "Tree-based bulk type editor — collapsible section/case tree with tri-state checkboxes, lazy-loads cases per section on expand, and batch-updates type_id via POST /api/cases/{id}/update.", x: 60, y: 800, color: "#f97316", group: "tool" },
+  "settings":      { label: "Settings.jsx",      sub: "Theme, API Test, Docs",        description: "Settings panel for theme switching, live API connectivity test, and app info. Also hosts AppStructure and DependencyMap.",           x: 60,  y: 700, color: "#f97316", group: "tool" },
+  "appstructure":  { label: "AppStructure.jsx",  sub: "Codebase map",                 description: "Interactive file tree showing every file with its documented status. Lets devs onboard without digging through folders.",            x: 220, y: 700, color: "#f97316", group: "tool" },
+  "depmap":        { label: "DependencyMap.jsx", sub: "This map",                     description: "SVG dependency graph showing how every component connects. Click a node to see what feeds it and what it feeds. (That's this!)",     x: 380, y: 700, color: "#f97316", group: "tool" },
+  "api":           { label: "api.js",            sub: "All HTTP calls",               description: "Single source of truth for all HTTP calls. Swap the base URL here and the whole app follows.",                                       x: 760, y: 370, color: "#eab308", group: "api" },
+  "indexcss":      { label: "index.css",         sub: "Global styles + CSS vars",     description: "Global stylesheet — CSS variables, reset, scrollbar styling, full-height layout. The visual foundation everything else inherits.",   x: 500, y: 370, color: "#ec4899", group: "style" },
+  "fastapi":       { label: "FastAPI",           sub: "app/main.py",                  description: "FastAPI entry point — creates the app instance and registers all routers. The first file the server loads.",                         x: 760, y: 490, color: "#22c55e", group: "backend" },
+  "authapi":       { label: "auth.py",           sub: "/api/auth/verify",             description: "Proxies credentials to TestRail and returns success/failure. First call on every login; blocks access if TestRail is unreachable.",  x: 620, y: 600, color: "#22c55e", group: "backend" },
+  "projectsapi":   { label: "projects.py",       sub: "/api/projects/",               description: "GET endpoints for projects, suites, and sections plus POST to create a section. The backbone of the left and middle panels.",        x: 760, y: 600, color: "#22c55e", group: "backend" },
+  "casesapi":      { label: "cases.py",          sub: "/api/cases/",                  description: "Full CRUD for test cases plus bulk-ID and name fixing. The most-called router — almost every tool touches it.",                      x: 900, y: 600, color: "#22c55e", group: "backend" },
+  "toolsapi":      { label: "tools.py",          sub: "/api/tools/",                  description: "POST /api/tools/export-csv and other utility endpoints. Handles heavier operations that don't fit standard CRUD.",                   x: 760, y: 700, color: "#22c55e", group: "backend" },
+  "structureapi":  { label: "structure.py",      sub: "/api/structure/",              description: "Scans the filesystem and returns a documented/undocumented file tree. Powers both AppStructure and DependencyMap.",                  x: 1020, y: 490, color: "#22c55e", group: "backend" },
+  "testrail":      { label: "TestRail",          sub: "External API",                 description: "The external TestRail REST API — the real data source. All backend routers ultimately call through here.",                           x: 760, y: 920, color: "#64748b", group: "external" },
+};
 
-function buildTree(sections, parentId = null) {
-  return sections
-    .filter(s => (s.parent_id ?? null) === parentId)
-    .map(s => ({ ...s, children: buildTree(sections, s.id) }));
-}
+const FILE_TO_NODE = Object.fromEntries(
+  Object.entries(KNOWN_NODES).map(([id, n]) => [n.label, id])
+);
 
-function collectSectionIds(node) {
-  return [node.id, ...node.children.flatMap(collectSectionIds)];
-}
+const GROUP_LABELS = [
+  { label: "Frontend",             color: "#3b82f6" },
+  { label: "Component",            color: "#14b8a6" },
+  { label: "Tools",                color: "#f97316" },
+  { label: "API Layer",            color: "#eab308" },
+  { label: "Backend",              color: "#22c55e" },
+  { label: "Styles",               color: "#ec4899" },
+  { label: "External",             color: "#64748b" },
+  { label: "Undocumented file(s)", color: "#ef4444" },
+];
 
-function caseIdsUnderNode(node, casesBySection) {
-  const direct = (casesBySection[node.id] ?? []).map(c => c.id);
-  const nested = node.children.flatMap(child => caseIdsUnderNode(child, casesBySection));
-  return [...direct, ...nested];
-}
+const NODE_W = 150, NODE_H = 50;
 
-// ── Tri-state checkbox ────────────────────────────────────────────────────────
-function Checkbox({ checked, indeterminate, onChange, disabled }) {
-  const ref = useCallback(el => {
-    if (el) el.indeterminate = !!indeterminate;
-  }, [indeterminate]);
+export default function DependencyMap() {
+  const [nodes, setNodes]               = useState([]);
+  const [undocumented, setUndocumented] = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const originalNodes                   = useRef([]);
+  const [selected, setSelected]         = useState(null);
+  const [hovered, setHovered]           = useState(null);
+  const [transform, setTransform]       = useState({ x: 0, y: 0, scale: 0.8 });
+
+  const isPanning    = useRef(false);
+  const lastPos      = useRef({ x: 0, y: 0 });
+  const startPos     = useRef({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+
+  const draggingNode = useRef(null);
+  const dragOffset   = useRef({ x: 0, y: 0 });
+  const didDragNode  = useRef(false);
+
+  const transformRef = useRef(transform);
+  useEffect(() => { transformRef.current = transform; }, [transform]);
+
+  useEffect(() => {
+    axios.get(`${BASE_URL}/api/structure/`)
+      .then(res => {
+        const all = [
+          ...(res.data.frontend ?? []),
+          ...(res.data.backend  ?? []),
+        ].map(f => ({ ...f, folder: f.folder.replace(/\\/g, "/") }));
+
+        const knownList    = Object.entries(KNOWN_NODES).map(([id, n]) => ({ id, ...n }));
+        const unknownFiles = all.filter(f => !f.documented && !FILE_TO_NODE[f.name]);
+        const unknownNodes = unknownFiles.map((f, i) => ({
+          id:          `unknown_${i}`,
+          label:       f.name,
+          sub:         "⚠ undocumented file",
+          description: "",
+          x:           60 + (i % 5) * 170,
+          y:           920,
+          color:       "#ef4444",
+          group:       "undocumented",
+        }));
+
+        const allNodes = [...knownList, ...unknownNodes];
+        originalNodes.current = allNodes;
+        setNodes(allNodes);
+        setUndocumented(unknownFiles);
+      })
+      .catch(() => {
+        const fallback = Object.entries(KNOWN_NODES).map(([id, n]) => ({ id, ...n }));
+        originalNodes.current = fallback;
+        setNodes(fallback);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const edges     = STATIC_EDGES;
+  const svgWidth  = nodes.length ? Math.max(...nodes.map(n => n.x + NODE_W)) + 100 : 1100;
+  const svgHeight = nodes.length ? Math.max(...nodes.map(n => n.y + NODE_H)) + 100 : 900;
+
+  const getNode      = id => nodes.find(n => n.id === id);
+  const nodeCenter   = n  => ({ x: n.x + NODE_W / 2, y: n.y + NODE_H / 2 });
+  const isConnected  = id => !selected || selected === id || edges.some(e => (e.from === selected && e.to === id) || (e.to === selected && e.from === id));
+  const isEdgeActive = e  => { const a = selected || hovered; return !a || e.from === a || e.to === a; };
+
+  const onMouseDown = useCallback(e => {
+    if (e.target.closest(".node")) return;
+    isPanning.current = true;
+    lastPos.current   = { x: e.clientX, y: e.clientY };
+    startPos.current  = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+  }, []);
+
+  const onMouseMove = useCallback(e => {
+    if (draggingNode.current) {
+      didDragNode.current = true;
+      const t = transformRef.current;
+      const newX = (e.clientX - t.x) / t.scale - dragOffset.current.x;
+      const newY = (e.clientY - t.y) / t.scale - dragOffset.current.y;
+      setNodes(prev => prev.map(n =>
+        n.id === draggingNode.current ? { ...n, x: newX, y: newY } : n
+      ));
+      return;
+    }
+    if (!isPanning.current) return;
+    const dx = e.clientX - lastPos.current.x;
+    const dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    setTransform(t => ({ ...t, x: t.x + dx, y: t.y + dy }));
+  }, []);
+
+  const onWheel = useCallback(e => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const rect  = containerRef.current.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    setTransform(t => {
+      const s  = Math.min(3, Math.max(0.3, t.scale * delta));
+      const sc = s / t.scale;
+      return { x: mx - sc * (mx - t.x), y: my - sc * (my - t.y), scale: s };
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [onWheel]);
+
+  useEffect(() => {
+    if (!containerRef.current || !nodes.length) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setTransform({ x: (rect.width - svgWidth * 0.8) / 2 + 80, y: (rect.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 });
+  }, [nodes.length]);
+
+  useEffect(() => {
+    const up = e => {
+      if (isPanning.current) {
+        const dx = Math.abs(e.clientX - startPos.current.x);
+        const dy = Math.abs(e.clientY - startPos.current.y);
+        if (dx < 3 && dy < 3) setSelected(null);
+      }
+      isPanning.current    = false;
+      draggingNode.current = null;
+    };
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, []);
+
+  const bg     = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()         || "#0a0f1e";
+  const panel  = getComputedStyle(document.documentElement).getPropertyValue("--bg-panel").trim()   || "#0f172a";
+  const border = getComputedStyle(document.documentElement).getPropertyValue("--border").trim()     || "#1e293b";
+  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()     || "#3b82f6";
+  const text   = getComputedStyle(document.documentElement).getPropertyValue("--text").trim()       || "#f8fafc";
+  const muted  = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#94a3b8";
+  const dim    = getComputedStyle(document.documentElement).getPropertyValue("--text-dim").trim()   || "#475569";
+
   return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={checked}
-      onChange={onChange}
-      disabled={disabled}
-      style={{ cursor: disabled ? "default" : "pointer", width: 14, height: 14, flexShrink: 0 }}
-    />
-  );
-}
-
-// ── Section node ──────────────────────────────────────────────────────────────
-function SectionNode({ node, depth, casesBySection, fetchedIds, loadingIds, selectedIds, onToggleSection, onToggleCase, collapsed, onToggleCollapse }) {
-  const cases         = casesBySection[node.id] ?? [];
-  const allIds        = caseIdsUnderNode(node, casesBySection);
-  const selectedCount = allIds.filter(id => selectedIds.has(id)).length;
-  const allChecked    = allIds.length > 0 && selectedCount === allIds.length;
-  const indeterminate = selectedCount > 0 && selectedCount < allIds.length;
-  const isCollapsed   = collapsed.has(node.id);
-  const sectionIds    = collectSectionIds(node);
-  const isLoading     = sectionIds.some(id => loadingIds.has(id));
-  const isFetched     = fetchedIds.has(node.id);
-
-  return (
-    <div>
-      {/* Section header */}
-      <div style={{ ...styles.sectionRow, paddingLeft: 8 + depth * 18 }}>
-        <Checkbox
-          checked={allChecked}
-          indeterminate={indeterminate}
-          disabled={isLoading}
-          onChange={() => onToggleSection(node, allChecked || indeterminate)}
-        />
-        <span
-          style={styles.chevron}
-          onClick={() => onToggleCollapse(node.id)}
-        >
-          {isCollapsed ? "▶" : "▼"}
-        </span>
-        <span
-          style={{ ...styles.sectionLabel, cursor: "pointer" }}
-          onClick={() => onToggleCollapse(node.id)}
-        >
-          {node.name}
-        </span>
-        {isLoading ? (
-          <span style={styles.pill}>loading…</span>
-        ) : isFetched ? (
-          <span style={styles.pill}>
-            {selectedCount > 0 ? `${selectedCount}/` : ""}{allIds.length} case{allIds.length !== 1 ? "s" : ""}
-          </span>
-        ) : (
-          <span style={{ ...styles.pill, fontStyle: "italic" }}>click to load</span>
+    <div ref={containerRef}
+      style={{ backgroundColor: "var(--bg)", width: "100%", height: "100%", overflow: "hidden", position: "relative", cursor: "grab", fontFamily: "'SF Mono','Fira Code',monospace", userSelect: "none" }}
+      onMouseDown={onMouseDown} onMouseMove={onMouseMove}
+    >
+      {/* Legend */}
+      <div style={{ position: "absolute", top: "12px", left: "12px", zIndex: 10, backgroundColor: panel + "cc", borderRadius: "8px", padding: "10px 14px", border: `1px solid ${border}`, display: "flex", gap: "14px", flexWrap: "wrap" }}>
+        {GROUP_LABELS.map(g => (
+          <div key={g.label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: g.color }} />
+            <span style={{ color: muted, fontSize: "0.7rem" }}>{g.label}</span>
+          </div>
+        ))}
+        {undocumented.length > 0 && (
+          <span style={{ color: "#ef4444", fontSize: "0.7rem" }}>⚠️ {undocumented.length} undocumented file(s)</span>
         )}
       </div>
 
-      {/* Cases + child sections */}
-      {!isCollapsed && (
-        <div>
-          {cases.map(c => {
-            const sel   = selectedIds.has(c.id);
-            const title = c.title?.length > 55 ? c.title.slice(0, 52) + "…" : (c.title || "Untitled");
-            return (
-              <div
-                key={c.id}
-                style={{
-                  ...styles.caseRow,
-                  paddingLeft: 8 + (depth + 1) * 18,
-                  backgroundColor: sel ? "var(--accent)11" : "transparent",
-                }}
-                onClick={e => { e.stopPropagation(); onToggleCase(c.id); }}
-              >
-                <Checkbox
-                  checked={sel}
-                  indeterminate={false}
-                  onChange={e => { e.stopPropagation(); onToggleCase(c.id); }}
-                />
-                <span style={styles.caseTitle}>{title}</span>
-                <span style={styles.caseType}>{typeLabel(c.type_id)}</span>
-              </div>
-            );
-          })}
-          {isFetched && cases.length === 0 && node.children.length === 0 && (
-            <div style={{ ...styles.caseRow, paddingLeft: 8 + (depth + 1) * 18, cursor: "default" }}>
-              <span style={{ color: "var(--text-dim)", fontSize: "0.78rem", fontStyle: "italic" }}>No cases in this section</span>
-            </div>
-          )}
-          {node.children.map(child => (
-            <SectionNode
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              casesBySection={casesBySection}
-              fetchedIds={fetchedIds}
-              loadingIds={loadingIds}
-              selectedIds={selectedIds}
-              onToggleSection={onToggleSection}
-              onToggleCase={onToggleCase}
-              collapsed={collapsed}
-              onToggleCollapse={onToggleCollapse}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-export default function BulkEditType({ credentials, selectedProject, selectedSuite, selectedSection, sections = [] }) {
-  const [allSections, setAllSections]         = useState(sections);
-  const [sectionsLoading, setSectionsLoading] = useState(false);
-
-  const casesBySectionRef = useRef({});
-  const fetchedIdsRef     = useRef(new Set());
-  const loadingIdsRef     = useRef(new Set());
-
-  const [casesBySection, setCasesBySection] = useState({});
-  const [fetchedIds, setFetchedIds]         = useState(new Set());
-  const [loadingIds, setLoadingIds]         = useState(new Set());
-
-  // Default all sections to collapsed
-  const [collapsed, setCollapsed]     = useState(new Set(sections.map(s => s.id)));
-  const [selectedIds, setSelectedIds] = useState(new Set());
-
-  const [targetType, setTargetType] = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [results, setResults]       = useState(null);
-  const [error, setError]           = useState("");
-
-  // ── Sync sections prop — collapse all on update ─────────────────────────
-  useEffect(() => {
-    setAllSections(sections);
-    setCollapsed(new Set(sections.map(s => s.id)));
-  }, [sections]);
-
-  // ── Self-fetch sections if not provided ────────────────────────────────
-  useEffect(() => {
-    if (!selectedProject || allSections.length > 0) return;
-    setSectionsLoading(true);
-    axios.post(`${BASE_URL}/api/sections/`, {
-      ...credentials,
-      project_id: selectedProject.id,
-      suite_id: selectedSuite?.id || null,
-    })
-      .then(res => {
-        const fetched = res.data.sections ?? res.data ?? [];
-        setAllSections(fetched);
-        setCollapsed(new Set(fetched.map(s => s.id)));  // default all collapsed
-      })
-      .catch(() => {})
-      .finally(() => setSectionsLoading(false));
-  }, [selectedProject, selectedSuite]);
-
-  // ── Full reset on project/suite change ─────────────────────────────────
-  useEffect(() => {
-    casesBySectionRef.current = {};
-    fetchedIdsRef.current     = new Set();
-    loadingIdsRef.current     = new Set();
-    setCasesBySection({});
-    setFetchedIds(new Set());
-    setLoadingIds(new Set());
-    setSelectedIds(new Set());
-    setCollapsed(new Set());
-    setResults(null);
-    setError("");
-  }, [selectedProject?.id, selectedSuite?.id]);
-
-  const sectionTree = buildTree(allSections);
-
-  // ── Core fetch ─────────────────────────────────────────────────────────
-  const fetchCases = useCallback(async (sectionId) => {
-    if (fetchedIdsRef.current.has(sectionId) || loadingIdsRef.current.has(sectionId)) return;
-    if (!selectedProject) return;
-
-    loadingIdsRef.current = new Set([...loadingIdsRef.current, sectionId]);
-    setLoadingIds(new Set(loadingIdsRef.current));
-
-    try {
-      const res = await axios.post(`${BASE_URL}/api/cases/`, {
-        ...credentials,
-        project_id: selectedProject.id,
-        suite_id:   selectedSuite?.id || null,
-        section_id: sectionId,
-      });
-      const cases = res.data.cases ?? [];
-      casesBySectionRef.current = { ...casesBySectionRef.current, [sectionId]: cases };
-      setCasesBySection({ ...casesBySectionRef.current });
-    } catch {
-      casesBySectionRef.current = { ...casesBySectionRef.current, [sectionId]: [] };
-      setCasesBySection({ ...casesBySectionRef.current });
-    }
-
-    fetchedIdsRef.current = new Set([...fetchedIdsRef.current, sectionId]);
-    loadingIdsRef.current = new Set([...loadingIdsRef.current].filter(id => id !== sectionId));
-    setFetchedIds(new Set(fetchedIdsRef.current));
-    setLoadingIds(new Set(loadingIdsRef.current));
-  }, [credentials, selectedProject, selectedSuite]);
-
-  // ── Collapse toggle — fetch on first expand ────────────────────────────
-  const handleToggleCollapse = useCallback((sectionId) => {
-    setCollapsed(prev => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);   // expanding — fetch if needed
-        fetchCases(sectionId);
-      } else {
-        next.add(sectionId);      // collapsing
-      }
-      return next;
-    });
-  }, [fetchCases]);
-
-  // ── Toggle individual case ─────────────────────────────────────────────
-  const handleToggleCase = useCallback((caseId) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(caseId) ? next.delete(caseId) : next.add(caseId);
-      return next;
-    });
-    setResults(null);
-    setError("");
-  }, []);
-
-  // ── Toggle section — fetch all descendants first, then bulk select ─────
-  const handleToggleSection = useCallback(async (node, deselect) => {
-    const sectionIds = collectSectionIds(node);
-    const unloaded   = sectionIds.filter(id => !fetchedIdsRef.current.has(id));
-
-    if (unloaded.length > 0) {
-      await Promise.all(unloaded.map(id => fetchCases(id)));
-    }
-
-    const allCaseIds = sectionIds.flatMap(id => (casesBySectionRef.current[id] ?? []).map(c => c.id));
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      allCaseIds.forEach(id => deselect ? next.delete(id) : next.add(id));
-      return next;
-    });
-    setResults(null);
-    setError("");
-  }, [fetchCases]);
-
-  // ── Select all / none ──────────────────────────────────────────────────
-  const allCaseIds  = Object.values(casesBySection).flat().map(c => c.id);
-  const allSelected = allCaseIds.length > 0 && allCaseIds.every(id => selectedIds.has(id));
-
-  const handleSelectAll = () => {
-    setSelectedIds(allSelected ? new Set() : new Set(allCaseIds));
-    setResults(null);
-    setError("");
-  };
-
-  // ── Apply ──────────────────────────────────────────────────────────────
-  const handleApply = async () => {
-    if (!canApply) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await axios.post(`${BASE_URL}/api/cases/bulk-update`, {
-        ...credentials,
-        case_ids: [...selectedIds],
-        fields: { type_id: Number(targetType) },
-      });
-      setResults(res.data);
-      setSelectedIds(new Set());
-    } catch {
-      setError("Bulk update failed. Please try again.");
-    }
-    setLoading(false);
-  };
-
-  const canApply = selectedIds.size > 0 && !!targetType && !loading;
-
-  return (
-    <div style={styles.container}>
-      <h3 style={styles.heading}>Bulk Edit Case Type</h3>
-      <p style={styles.description}>
-        Select cases from the tree below, pick a target type, then apply.
-      </p>
-
-      {!selectedProject && (
-        <div style={styles.warningBox}>Please select a project from the left panel first.</div>
-      )}
-
-      {/* ── Target type ──────────────────────────────────────────────────── */}
-      <div style={styles.field}>
-        <label style={styles.label}>Set Type To</label>
-        <select
-          style={styles.select}
-          value={targetType}
-          onChange={e => setTargetType(e.target.value)}
-          disabled={!selectedProject}
-        >
-          <option value="">— Choose target type —</option>
-          {CASE_TYPES.map(t => (
-            <option key={t.id} value={t.id}>{t.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* ── Case tree ────────────────────────────────────────────────────── */}
-      <div style={styles.field}>
-        <div style={styles.treeHeader}>
-          <label style={styles.label}>Cases</label>
-          {allCaseIds.length > 0 && (
-            <div style={styles.treeActions}>
-              <span style={styles.selectedCount}>{selectedIds.size} selected</span>
-              <button style={styles.linkBtn} onClick={handleSelectAll}>
-                {allSelected ? "Deselect all" : "Select all"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div style={styles.treeBox}>
-          {!selectedProject && (
-            <p style={styles.placeholder}>Select a project to load cases.</p>
-          )}
-          {sectionsLoading && (
-            <p style={styles.placeholder}>Loading sections…</p>
-          )}
-          {selectedProject && !sectionsLoading && sectionTree.length === 0 && (
-            <p style={styles.placeholder}>No sections found.</p>
-          )}
-          {sectionTree.map(node => (
-            <SectionNode
-              key={node.id}
-              node={node}
-              depth={0}
-              casesBySection={casesBySection}
-              fetchedIds={fetchedIds}
-              loadingIds={loadingIds}
-              selectedIds={selectedIds}
-              onToggleSection={handleToggleSection}
-              onToggleCase={handleToggleCase}
-              collapsed={collapsed}
-              onToggleCollapse={handleToggleCollapse}
-            />
-          ))}
-        </div>
-      </div>
-
-      {error && <p style={styles.error}>{error}</p>}
-
-      {/* ── Apply button ─────────────────────────────────────────────────── */}
-      {!results && (
-        <button
-          style={{ ...styles.btn, opacity: canApply ? 1 : 0.4 }}
-          onClick={handleApply}
-          disabled={!canApply}
-        >
-          {loading
-            ? "Applying…"
-            : canApply
-              ? `Set ${selectedIds.size} case${selectedIds.size !== 1 ? "s" : ""} → ${typeLabel(targetType)}`
-              : "Apply Changes"}
-        </button>
-      )}
-
-      {/* ── Results ──────────────────────────────────────────────────────── */}
-      {results && (
-        <div style={styles.results}>
-          <p style={styles.resultSummary}>
-            ✓ Updated: {results.updated}
-            {results.results?.filter(r => r.skipped).length > 0 && (
-              <span style={{ color: "var(--text-dim)" }}>
-                {" "}&nbsp;|&nbsp; — Skipped: {results.results.filter(r => r.skipped).length}
-              </span>
-            )}
-            {results.errors > 0 && (
-              <span style={{ color: "#f87171" }}>
-                {" "}&nbsp;|&nbsp; ✕ Errors: {results.errors}
-              </span>
-            )}
-          </p>
-          <div style={styles.resultList}>
-            {results.results?.map((r, i) => (
-              <div key={i} style={styles.resultRow}>
-                <span style={{ color: r.skipped ? "#64748b" : r.ok ? "#22c55e" : "#f87171" }}>
-                  {r.skipped ? "—" : r.ok ? "✓" : "✕"}
-                </span>
-                <span style={styles.resultText}>
-                  {r.skipped
-                    ? `Case ${r.case_id} skipped`
-                    : `Case ${r.case_id} → ${typeLabel(targetType)}`}
-                  {r.error && <span style={{ color: "#f87171" }}> ({r.error})</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-          <button style={{ ...styles.btnSecondary, marginTop: 8 }} onClick={() => setResults(null)}>
-            Reset
+      {/* Zoom controls */}
+      <div style={{ position: "absolute", bottom: "20px", right: "20px", zIndex: 10, display: "flex", flexDirection: "column", gap: "4px" }}>
+        {[
+          { label: "+", fn: () => setTransform(t => ({ ...t, scale: Math.min(3, t.scale * 1.2) })) },
+          { label: "−", fn: () => setTransform(t => ({ ...t, scale: Math.max(0.3, t.scale * 0.8) })) },
+          { label: "↺", fn: () => {
+              const r = containerRef.current.getBoundingClientRect();
+              setTransform({ x: (r.width - svgWidth * 0.8) / 2 + 80, y: (r.height - svgHeight * 0.8) / 2 + 25, scale: 0.8 });
+              setNodes(originalNodes.current);
+            }},
+        ].map(b => (
+          <button key={b.label} onClick={b.fn} style={{ width: "32px", height: "32px", borderRadius: "6px", border: `1px solid ${border}`, backgroundColor: panel, color: text, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {b.label}
           </button>
+        ))}
+      </div>
+
+      {loading && (
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", color: muted, fontSize: "0.9rem" }}>
+          Loading structure…
         </div>
       )}
+
+      <div style={{ position: "absolute", bottom: "20px", left: "12px", zIndex: 10, color: dim, fontSize: "0.72rem" }}>
+        Scroll to zoom · Drag canvas to pan · Drag nodes to rearrange · Click node to highlight
+      </div>
+
+      <svg width={svgWidth} height={svgHeight}
+        style={{ display: "block", transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: "0 0" }}
+      >
+        <defs>
+          <marker id="arrow"        markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill={border} /></marker>
+          <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill={accent} /></marker>
+        </defs>
+
+        {edges.map((edge, i) => {
+          const from = getNode(edge.from), to = getNode(edge.to);
+          if (!from || !to) return null;
+          const fc = nodeCenter(from), tc = nodeCenter(to);
+          const active = isEdgeActive(edge);
+          return (
+            <path key={i}
+              d={`M ${fc.x} ${fc.y} Q ${(fc.x + tc.x) / 2} ${(fc.y + tc.y) / 2} ${tc.x} ${tc.y}`}
+              fill="none" stroke={active ? accent : border}
+              strokeWidth={active ? 1.5 : 1} strokeOpacity={active ? 0.8 : 0.4}
+              markerEnd={active ? "url(#arrow-active)" : "url(#arrow)"}
+            />
+          );
+        })}
+
+        {nodes.map(node => {
+          const isUndoc   = node.group === "undocumented";
+          const connected = isConnected(node.id);
+          const isSel     = selected === node.id;
+          const isHov     = hovered  === node.id;
+          const nodeBg    = isUndoc
+            ? (isSel ? "#ef444433" : isHov ? "#ef444422" : "#1a0a0a")
+            : (isSel ? node.color + "33" : isHov ? node.color + "22" : panel);
+          const nodeStroke = isUndoc
+            ? "#ef4444"
+            : (isSel || isHov ? node.color : connected ? border : bg);
+
+          return (
+            <g key={node.id} className="node" transform={`translate(${node.x}, ${node.y})`}
+              style={{ cursor: draggingNode.current === node.id ? "grabbing" : "grab" }}
+              onMouseDown={e => {
+                e.stopPropagation();
+                didDragNode.current  = false;
+                draggingNode.current = node.id;
+                const t = transformRef.current;
+                dragOffset.current = {
+                  x: (e.clientX - t.x) / t.scale - node.x,
+                  y: (e.clientY - t.y) / t.scale - node.y,
+                };
+              }}
+              onClick={e => {
+                e.stopPropagation();
+                if (!didDragNode.current) setSelected(isSel ? null : node.id);
+              }}
+              onMouseEnter={() => setHovered(node.id)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <rect width={NODE_W} height={NODE_H} rx={6}
+                fill={nodeBg} stroke={nodeStroke}
+                strokeWidth={isUndoc || isSel ? 2 : 1} opacity={connected ? 1 : 0.25}
+              />
+              {node.group === "undocumented" && (
+                <text x={8} y={16} fill="#ef4444" fontSize="10">⚠</text>
+              )}
+              <text x={NODE_W / 2} y={20} textAnchor="middle"
+                fill={isUndoc ? "#ef4444" : connected ? node.color : border}
+                fontSize="11" fontWeight="700" fontFamily="'SF Mono',monospace"
+              >
+                {node.label}
+              </text>
+              <text x={NODE_W / 2} y={36} textAnchor="middle"
+                fill={isUndoc ? "#ef444499" : connected ? muted : border}
+                fontSize="9" fontFamily="'SF Mono',monospace"
+              >
+                {node.sub}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* Detail panel */}
+      {selected && (() => {
+        const node = getNode(selected);
+        if (!node) return null;
+        const out = edges.filter(e => e.from === selected).map(e => getNode(e.to)).filter(Boolean);
+        const inc = edges.filter(e => e.to   === selected).map(e => getNode(e.from)).filter(Boolean);
+        return (
+          <div style={{ position: "absolute", bottom: "20px", right: "70px", backgroundColor: panel, border: `1px solid ${node.color}`, borderRadius: "10px", padding: "16px", width: "240px", boxShadow: `0 0 20px ${node.color}33`, zIndex: 20 }}>
+            <div style={{ color: node.color, fontWeight: "700", fontSize: "0.9rem", marginBottom: "4px" }}>{node.label}</div>
+            <div style={{ color: muted, fontSize: "0.75rem", marginBottom: node.description ? "8px" : "12px" }}>
+              {node.sub}
+              {node.group === "undocumented" && (
+                <div style={{ color: "#ef4444", marginTop: "4px", fontSize: "0.72rem" }}>
+                  Add to <code>app/api/structure.py</code> → KNOWN
+                </div>
+              )}
+            </div>
+            {node.description && (
+              <div style={{ color: text, fontSize: "0.78rem", lineHeight: "1.5", marginBottom: "12px", paddingBottom: "12px", borderBottom: `1px solid ${border}` }}>
+                {node.description}
+              </div>
+            )}
+            {inc.length > 0 && (
+              <div style={{ marginBottom: "8px" }}>
+                <div style={{ color: dim, fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Receives from</div>
+                {inc.map(n => <div key={n.id} style={{ color: n.color, fontSize: "0.78rem", marginBottom: "2px" }}>← {n.label}</div>)}
+              </div>
+            )}
+            {out.length > 0 && (
+              <div>
+                <div style={{ color: dim, fontSize: "0.68rem", textTransform: "uppercase", marginBottom: "4px" }}>Sends to</div>
+                {out.map(n => <div key={n.id} style={{ color: n.color, fontSize: "0.78rem", marginBottom: "2px" }}>→ {n.label}</div>)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
-
-const styles = {
-  container:   { display: "flex", flexDirection: "column", gap: "14px" },
-  heading:     { color: "var(--text)", fontSize: "1rem", margin: 0 },
-  description: { color: "var(--text-muted)", fontSize: "0.88rem" },
-  field:       { display: "flex", flexDirection: "column", gap: "4px" },
-  label:       { color: "var(--text-dim)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
-  select: {
-    padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)",
-    backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", cursor: "pointer",
-  },
-  treeHeader:    { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  treeActions:   { display: "flex", alignItems: "center", gap: "10px" },
-  selectedCount: { color: "var(--text-dim)", fontSize: "0.78rem" },
-  linkBtn: {
-    background: "none", border: "none", color: "var(--accent)",
-    fontSize: "0.78rem", cursor: "pointer", padding: 0,
-  },
-  treeBox: {
-    border: "1px solid var(--border)", borderRadius: "6px",
-    backgroundColor: "var(--bg-panel)",
-    minHeight: 100, maxHeight: 380, overflowY: "auto",
-  },
-  placeholder: {
-    color: "var(--text-dim)", fontSize: "0.85rem",
-    textAlign: "center", padding: "28px 0", margin: 0,
-  },
-  sectionRow: {
-    display: "flex", alignItems: "center", gap: "6px",
-    padding: "6px 8px", borderBottom: "1px solid var(--border)",
-    backgroundColor: "var(--bg)", userSelect: "none",
-    position: "sticky", top: 0, zIndex: 1,
-  },
-  chevron: {
-    color: "var(--text-dim)", fontSize: "0.62rem",
-    width: 12, textAlign: "center", cursor: "pointer", flexShrink: 0,
-  },
-  sectionLabel: {
-    flex: 1, color: "var(--text)", fontWeight: 600, fontSize: "0.83rem",
-    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-  },
-  pill: {
-    color: "var(--text-dim)", fontSize: "0.7rem",
-    backgroundColor: "var(--bg-panel)", borderRadius: "10px",
-    padding: "1px 7px", flexShrink: 0,
-  },
-  caseRow: {
-    display: "flex", alignItems: "center", gap: "8px",
-    padding: "4px 8px", borderBottom: "1px solid var(--border)",
-    cursor: "pointer", userSelect: "none",
-    transition: "background 0.1s",
-  },
-  caseTitle: {
-    flex: 1, color: "var(--text-muted)", fontSize: "0.8rem",
-    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-  },
-  caseType: {
-    color: "var(--text-dim)", fontSize: "0.7rem",
-    fontFamily: "monospace", flexShrink: 0,
-  },
-  btn: {
-    padding: "10px 20px", borderRadius: "6px", border: "none",
-    backgroundColor: "var(--accent)", color: "white",
-    fontSize: "0.9rem", cursor: "pointer", alignSelf: "flex-start",
-  },
-  btnSecondary: {
-    padding: "10px 20px", borderRadius: "6px", border: "1px solid var(--border)",
-    backgroundColor: "transparent", color: "var(--text-muted)",
-    fontSize: "0.9rem", cursor: "pointer", alignSelf: "flex-start",
-  },
-  error: { color: "#f87171", fontSize: "0.85rem" },
-  warningBox: {
-    backgroundColor: "var(--bg-panel)", border: "1px solid #f97316",
-    borderRadius: "6px", padding: "10px 14px", color: "#f97316", fontSize: "0.85rem",
-  },
-  results: {
-    backgroundColor: "var(--bg-panel)", borderRadius: "6px", padding: "12px",
-    display: "flex", flexDirection: "column", gap: "8px",
-  },
-  resultSummary: { color: "var(--text)", fontSize: "0.88rem", margin: 0 },
-  resultList:    { display: "flex", flexDirection: "column", gap: "4px", maxHeight: "200px", overflowY: "auto" },
-  resultRow:     { display: "flex", alignItems: "center", gap: "8px" },
-  resultText:    { color: "var(--text-muted)", fontSize: "0.82rem" },
-};
