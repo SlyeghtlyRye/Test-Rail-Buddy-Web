@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { createSection } from "../api";
+import CaseForm from "./CaseForm";
+
 
 export default function CreateSection({ credentials, selectedProject, selectedSuite, selectedSection, sections }) {
   const [name, setName] = useState("");

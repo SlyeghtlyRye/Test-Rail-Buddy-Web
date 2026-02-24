@@ -3,6 +3,7 @@ import { AuthProvider } from "./AuthContext";
 import LoginPage from "./pages/LoginPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import AppStructure from "./tools/AppStructure";
+import SimulatePage from "./pages/SimulatePage";
 import { useEffect } from "react";
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/app-structure" element={<AppStructure />} />
+          <Route path="/simulate/:caseId" element={<SimulatePage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

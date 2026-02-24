@@ -35,6 +35,12 @@ KNOWN = {
     "main.jsx":           "React entry point — mounts <App /> into the DOM. Rarely needs editing but must exist for Vite to boot the app.",
     "theme.js":           "Defines light and dark colour tokens. Update palette here to retheme the entire app in one place.",
 
+    #Simulation endpoints
+    "SimulatePage.jsx":   "Route /simulate/:caseId — lets users record a Playwright session against a live environment and replay it headlessly. Saves session state to sessionStorage so ProjectsPage can restore the selected case on return.",
+    "simulate_playwright.py": "POST /api/simulate/playwright/record and /playback endpoints. Launches a visible Playwright browser for manual recording, stores actions as JSON, and replays them headlessly step-by-step returning a structured pass/fail HTML report. Also updates TestRail case steps and test data on save.",
+
+
+
     # Backend API
     "auth.py":            "POST /api/auth/verify — proxies credentials to TestRail and returns success/failure. First call made on every login; blocks access if TestRail is unreachable.",
     "projects.py":        "GET endpoints for projects, suites, and sections, plus POST to create a section. The backbone of the left and middle panels in ProjectsPage.",
@@ -52,6 +58,8 @@ KNOWN = {
     # Backend root
     "main.py":            "FastAPI entry point — creates the app instance and registers all routers. The first file the server loads; misconfiguring it breaks everything.",
     "__init__.py":        "Marks the app directory as a Python package. Required for relative imports between modules to resolve correctly.",
+
+
 }
 
 

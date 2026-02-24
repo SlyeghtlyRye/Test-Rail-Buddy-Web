@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, projects, cases, tools, structure
 from app.core.config import get_settings
+from app.api import auth, projects, cases, tools, structure, simulate_playwright  # add to existing import
 
 settings = get_settings()
 
@@ -24,6 +25,7 @@ app.include_router(projects.router,   prefix="/api/projects",  tags=["projects"]
 app.include_router(cases.router,      prefix="/api/cases",     tags=["cases"])
 app.include_router(tools.router,      prefix="/api/tools",     tags=["tools"])
 app.include_router(structure.router,  prefix="/api/structure", tags=["structure"])
+app.include_router(simulate_playwright.router, prefix="/api/simulate/playwright",  tags=["simulate"])
 
 
 @app.get("/health")

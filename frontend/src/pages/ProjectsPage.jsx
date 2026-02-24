@@ -8,28 +8,30 @@ import axios from "axios";
 
 const BASE_URL = "http://localhost:8000";
 
-
-
 function stripHtml(text) {
   if (!text) return "";
   return text
-    .replace(/<br\s*\/?>/gi, "\n")           // line breaks
-    .replace(/<\/p>/gi, "\n")                // paragraph ends
-    .replace(/<\/h[1-6]>/gi, "\n")           // heading ends
-    .replace(/<\/tr>/gi, "\n")               // table row ends
-    .replace(/<\/td>/gi, "\t")               // table cells → tab-separated
-    .replace(/<\/li>/gi, "\n")               // list item ends
-    .replace(/<li>/gi, "• ")                 // list item starts → bullet
-    .replace(/<[^>]+>/g, "")                 // strip remaining tags
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/h[1-6]>/gi, "\n")
+    .replace(/<\/tr>/gi, "\n")
+    .replace(/<\/td>/gi, "\t")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li>/gi, "• ")
+    .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")                  // apostrophe entity
-    .replace(/\n{3,}/g, "\n\n")             // collapse excessive blank lines
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+const styleTag = document.createElement("style");
+styleTag.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(styleTag);
 
 export default function ProjectsPage() {
   const { credentials, logout } = useAuth();
@@ -54,21 +56,84 @@ export default function ProjectsPage() {
   const [loadingSections, setLoadingSections] = useState({});
   const [selectedCaseId, setSelectedCaseId] = useState(null);
   const [toolsOpen, setToolsOpen] = useState(false);
-
-  // Edit state
   const [editMode, setEditMode] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [caseRecording, setCaseRecording] = useState(null);
+  const [visibleCounts, setVisibleCounts] = useState({});
+  const [restoringSession, setRestoringSession] = useState(false);
 
   const isResizing = useRef(false);
   const isResizingMiddle = useRef(false);
   const containerRef = useRef(null);
 
-
-  const [visibleCounts, setVisibleCounts] = useState({});
   useEffect(() => {
     if (!credentials) { navigate("/"); return; }
-    loadProjects();
+    const saved = sessionStorage.getItem("trb_state");
+    if (saved) {
+      sessionStorage.removeItem("trb_state");
+      const s = JSON.parse(saved);
+      const restore = async () => {
+        setRestoringSession(true);
+        setLoading(true);
+        try {
+          const projRes = await getProjects(credentials);
+          setProjects(projRes.data);
+          if (s.selectedProject) {
+            setSelectedProject(s.selectedProject);
+            const suitesRes = await getSuites(credentials, s.selectedProject.id);
+            setSuites(suitesRes.data);
+            setSelectedSuite(s.selectedSuite);
+            const sectionsRes = await getSections(credentials, s.selectedProject.id, s.selectedSuite?.id || null);
+            setSections(sectionsRes.data);
+            setExpandedSections(s.expandedSections || {});
+            setSelectedSection(s.selectedSection);
+            const expanded = s.expandedSections || {};
+            for (const sectionId of Object.keys(expanded)) {
+              if (expanded[sectionId]) {
+                const casesRes = await getCases(credentials, s.selectedProject.id, s.selectedSuite?.id, parseInt(sectionId));
+                setCases(prev => ({ ...prev, [sectionId]: casesRes.data.cases || [] }));
+              }
+            }
+            if (s.selectedCaseId) {
+              setSelectedCaseId(s.selectedCaseId);
+              setCaseLoading(true);
+              try {
+                const caseRes = await getCase(credentials, s.selectedCaseId);
+                setSelectedCase(caseRes.data);
+                checkRecording(s.selectedCaseId);
+              } catch (err) {
+                console.error("Failed to restore selected case", err);
+              }
+              setCaseLoading(false);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to restore session, falling back to fresh load", err);
+          // Clear any partial state so the page is usable
+          setSelectedProject(null);
+          setSelectedSuite(null);
+          setSections([]);
+          setCases({});
+          setExpandedSections({});
+          setSelectedCase(null);
+          setSelectedCaseId(null);
+          // Still try to load projects so the page isn't blank
+          try {
+            const projRes = await getProjects(credentials);
+            setProjects(projRes.data);
+          } catch (e) {
+            console.error("Failed to load projects on fallback", e);
+          }
+        } finally {
+          setLoading(false);
+          setRestoringSession(false);
+        }
+      };
+      restore();
+    } else {
+      loadProjects();
+    }
   }, []);
 
   useEffect(() => {
@@ -76,7 +141,6 @@ export default function ProjectsPage() {
     setEditError("");
   }, [selectedCaseId]);
 
-  
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") setToolsOpen(false);
@@ -84,7 +148,6 @@ export default function ProjectsPage() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
-
 
   const handleDeleteCase = async () => {
     if (!window.confirm(`Delete "${selectedCase.title}"? This cannot be undone.`)) return;
@@ -101,11 +164,19 @@ export default function ProjectsPage() {
     }
   };
 
-
   const handleOpenCase = async (c) => {
     setToolsOpen(false);
     const section = sections.find(s => s.id === c.section_id);
     if (section) await handleCaseClick(c, section);
+  };
+
+  const checkRecording = async (caseId) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/api/simulate/playwright/recordings/${caseId}`);
+      setCaseRecording(res.data.exists);
+    } catch {
+      setCaseRecording(false);
+    }
   };
 
   const handleEditSave = async (fields) => {
@@ -204,14 +275,12 @@ export default function ProjectsPage() {
     setLoading(false);
   };
 
-
   const toggleSection = async (section) => {
     const isExpanded = expandedSections[section.id];
     if (isExpanded) { setExpandedSections(prev => ({ ...prev, [section.id]: false })); setSelectedSection(section); return; }
     setExpandedSections(prev => ({ ...prev, [section.id]: true }));
     setSelectedSection(section);
 
-    // Show count badge whenever opening
     if (cases[section.id]) {
       setVisibleCounts(prev => ({ ...prev, [section.id]: true }));
       setTimeout(() => setVisibleCounts(prev => ({ ...prev, [section.id]: false })), 3000);
@@ -251,9 +320,11 @@ export default function ProjectsPage() {
   const handleCaseClick = async (c, section) => {
     setSelectedCaseId(c.id); setSelectedSection(section);
     setCaseLoading(true); setSelectedCase(null);
+    setCaseRecording(null);
     try { const res = await getCase(credentials, c.id); setSelectedCase(res.data); }
     catch (err) { console.error("Failed to load case", err); }
     setCaseLoading(false);
+    checkRecording(c.id);
   };
 
   const rootSections = sections.filter(s => !s.parent_id);
@@ -298,6 +369,17 @@ export default function ProjectsPage() {
 
   return (
     <div ref={containerRef} style={styles.container}>
+
+      {/* Session restore overlay */}
+      {restoringSession && (
+        <div style={styles.restoringOverlay}>
+          <div style={styles.restoringBox}>
+            <div style={styles.spinner} />
+            <span style={styles.restoringText}>Loading your case...</span>
+          </div>
+        </div>
+      )}
+
       <div style={styles.header}>
         <h1 style={styles.title}>TestRail Buddy</h1>
         <div style={{ display: "flex", gap: "10px" }}>
@@ -375,11 +457,15 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            {caseLoading && <p style={styles.loading}>Loading case...</p>}
-            {!caseLoading && !selectedCase && <p style={styles.hint}>Select a test case to view details</p>}
+            {loading && (
+              <p style={styles.loading}>Restoring session...</p>
+            )}
+
+            {!loading && caseLoading && <p style={styles.loading}>Loading case...</p>}
+            {!loading && !caseLoading && !selectedCase && <p style={styles.hint}>Select a test case to view details</p>}
 
             {/* View mode */}
-            {!caseLoading && selectedCase && !editMode && (
+            {!loading && !caseLoading && selectedCase && !editMode && (
               <div style={styles.caseDetail}>
                 <div style={styles.caseField}><span style={styles.fieldLabel}>Test Case ID</span><span style={styles.fieldValue}>{selectedCase.custom_tc_test_case_id || "-"}</span></div>
                 <div style={styles.caseField}><span style={styles.fieldLabel}>Test Name</span><span style={styles.fieldValue}>{selectedCase.custom_tc_name || "-"}</span></div>
@@ -393,8 +479,8 @@ export default function ProjectsPage() {
               </div>
             )}
 
-            {/* Edit mode — reuses the same CaseForm as CreateCase */}
-            {!caseLoading && selectedCase && editMode && (
+            {/* Edit mode */}
+            {!loading && !caseLoading && selectedCase && editMode && (
               <CaseForm
                 credentials={credentials}
                 selectedProject={selectedProject}
@@ -408,6 +494,17 @@ export default function ProjectsPage() {
                 showCreateAnother={false}
                 error={editError}
                 saving={editSaving}
+                onSimulate={() => {
+                  sessionStorage.setItem("trb_state", JSON.stringify({
+                    selectedProject,
+                    selectedSuite,
+                    selectedSection,
+                    selectedCaseId,
+                    expandedSections,
+                  }));
+                  navigate(`/simulate/${selectedCase.id}`);
+                }}
+                recordingExists={caseRecording}
               />
             )}
           </div>
@@ -443,10 +540,10 @@ const styles = {
   content: { display: "flex", flex: 1, overflow: "hidden", width: "100%" },
   panelOuter: { position: "relative", display: "flex", flexShrink: 0, borderRight: "1px solid var(--border)", minWidth: 0, backgroundColor: "var(--bg)" },
   panelInner: { flex: 1, padding: "0 20px 20px 20px", display: "flex", flexDirection: "column", overflow: "hidden" },
-
   rightPanel: { flex: 1, padding: "0 20px 20px 20px", overflowY: "auto", overflowX: "hidden", backgroundColor: "var(--bg)", position: "relative", minWidth: 0, maxWidth: "100%", borderLeft: "1px solid var(--border)" },
   resizeHandle: { position: "absolute", right: 0, top: 0, bottom: 0, width: "4px", cursor: "col-resize", backgroundColor: "var(--border)", zIndex: 10 },
-  panelHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", position: "sticky", top: 0, backgroundColor: "var(--bg)", zIndex: 10, padding: "20px 0 12px 0", borderBottom: "1px solid var(--border)" },  collapseBtn: { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.85rem", padding: "2px 6px" },
+  panelHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", position: "sticky", top: 0, backgroundColor: "var(--bg)", zIndex: 10, padding: "20px 0 12px 0", borderBottom: "1px solid var(--border)" },
+  collapseBtn: { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.85rem", padding: "2px 6px" },
   editBtn: { padding: "4px 12px", borderRadius: "6px", border: "none", backgroundColor: "var(--accent)", color: "#fff", fontSize: "0.8rem", cursor: "pointer" },
   cancelBtn: { padding: "4px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-muted)", fontSize: "0.8rem", cursor: "pointer" },
   collapsedTab: { width: "28px", backgroundColor: "var(--bg-panel)", borderRight: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
@@ -471,4 +568,37 @@ const styles = {
   blockText: { color: "var(--text)", fontSize: "0.9rem", lineHeight: "1.6", whiteSpace: "pre-wrap" },
   caseHeaderTitle: { color: "var(--text)", fontSize: "0.95rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
   suitesScroll: { flex: 1, overflowY: "auto", marginTop: "4px", scrollbarWidth: "none", msOverflowStyle: "none" },
-  caseCount: { marginLeft: "auto", fontSize: "0.75rem", color: "var(--text-dim)", backgroundColor: "var(--bg-panel)", padding: "1px 7px", borderRadius: "10px", flexShrink: 0 },};
+  caseCount: { marginLeft: "auto", fontSize: "0.75rem", color: "var(--text-dim)", backgroundColor: "var(--bg-panel)", padding: "1px 7px", borderRadius: "10px", flexShrink: 0 },
+  restoringOverlay: {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "rgba(15,23,42,0.85)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+    pointerEvents: "all",
+  },
+  restoringBox: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "16px",
+    padding: "32px 48px",
+    backgroundColor: "var(--bg-panel, #1e293b)",
+    border: "1px solid var(--border, #334155)",
+    borderRadius: "12px",
+  },
+  restoringText: {
+    color: "var(--text, #f1f5f9)",
+    fontSize: "0.95rem",
+  },
+  spinner: {
+    width: "24px",
+    height: "24px",
+    border: "2px solid var(--border, #334155)",
+    borderTop: "2px solid var(--accent, #3b82f6)",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+  },
+};

@@ -55,6 +55,8 @@ export default function CaseForm({
   onSubmit,
   onCancel = null,
   onDelete = null,
+  onSimulate = null,
+  recordingExists = null,
   submitLabel = "Save",
   showCreateAnother = false,
   error = "",
@@ -315,6 +317,16 @@ export default function CaseForm({
             Cancel
           </button>
         )}
+        {onSimulate && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button style={styles.btnSimulate} onClick={onSimulate} type="button">
+              ⏺ Simulation
+            </button>
+            <span style={{ fontSize: "0.8rem", color: recordingExists === true ? "#22c55e" : "#ef4444" }}>
+              {recordingExists === true ? "Available" : "Missing"}
+            </span>
+          </div>
+        )}
         {onDelete && (
           <button
             style={{ ...styles.btnDelete, marginLeft: "auto" }}
@@ -326,6 +338,7 @@ export default function CaseForm({
           </button>
         )}
       </div>
+
     </div>
   );
 }
@@ -348,4 +361,6 @@ const styles = {
   collapseLabel: { color: "var(--text)", fontSize: "0.85rem" },
   collapseBody: { padding: "14px", display: "flex", flexDirection: "column", gap: "14px", borderTop: "1px solid var(--border)" },
   stickyFooter: { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "8px", zIndex: 10 },
+  btnSimulate: { padding: "10px 20px", borderRadius: "6px", border: "1px solid #7c3aed", backgroundColor: "rgba(124,58,237,0.1)", color: "#a78bfa", fontSize: "0.9rem", cursor: "pointer", fontWeight: "600" },
+
 };

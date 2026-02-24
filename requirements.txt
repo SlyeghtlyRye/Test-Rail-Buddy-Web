@@ -4,6 +4,7 @@ pydantic==2.8.2
 pydantic-settings==2.4.0
 requests==2.32.3
 python-multipart==0.0.9
+playwright==1.49.0
 
 pytest==8.3.3
 pytest-cov==5.0.0
