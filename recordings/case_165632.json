@@ -1,0 +1,133 @@
+{
+  "case_id": 165632,
+  "environment_url": "https://phone.com",
+  "actions": [
+    {
+      "action": "navigate",
+      "url": "https://www.phone.com/"
+    },
+    {
+      "action": "click",
+      "selector": "role:\"link\", name=\"LOG IN\", exact=True",
+      "value": "",
+      "raw": "page.get_by_role(\"link\", name=\"LOG IN\", exact=True).click()"
+    },
+    {
+      "action": "navigate",
+      "url": "https://accounts.phone.com/?client_id=e53f4ba1-3af0-410d-8861-83759c0b37b0&redirect_uri=https://my.phone.com"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Email or username",
+      "value": "",
+      "raw": "page.get_by_placeholder(\"Email or username\").fill(\"\")"
+    },
+    {
+      "action": "click",
+      "selector": "a",
+      "value": "",
+      "raw": "page.locator(\"a\").filter(has_text=\"Sign in with extension\").click()"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Phone.com number",
+      "value": "+1-112",
+      "raw": "page.get_by_placeholder(\"Phone.com number\").fill(\"+1-112\")"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Extension",
+      "value": "2223",
+      "raw": "page.get_by_placeholder(\"Extension\").fill(\"2223\")"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Voicemail PIN",
+      "value": "33333",
+      "raw": "page.get_by_placeholder(\"Voicemail PIN\").fill(\"33333\")"
+    },
+    {
+      "action": "click",
+      "selector": "role:\"button\", name=\"Sign in\"",
+      "value": "",
+      "raw": "page.get_by_role(\"button\", name=\"Sign in\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "role:\"button\", name=\"Go back\"",
+      "value": "",
+      "raw": "page.get_by_role(\"button\", name=\"Go back\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "placeholder:Phone.com number",
+      "value": "",
+      "raw": "page.get_by_placeholder(\"Phone.com number\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "text:Sign in with your email or usernameSign inNeed help signing in?By continuing",
+      "value": "",
+      "raw": "page.get_by_text(\"Sign in with your email or usernameSign inNeed help signing in?By continuing\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "a",
+      "value": "",
+      "raw": "page.locator(\"a\").filter(has_text=\"Sign in with your email or\").click()"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Email or username",
+      "value": "ryan3018@gmail.com",
+      "raw": "page.get_by_placeholder(\"Email or username\").fill(\"ryan3018@gmail.com\")"
+    },
+    {
+      "action": "press",
+      "selector": "placeholder:Email or username",
+      "value": "Tab",
+      "raw": "page.get_by_placeholder(\"Email or username\").press(\"Tab\")"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Password",
+      "value": "maell",
+      "raw": "page.get_by_placeholder(\"Password\").fill(\"maell\")"
+    },
+    {
+      "action": "press",
+      "selector": "placeholder:Password",
+      "value": "ControlOrMeta+a",
+      "raw": "page.get_by_placeholder(\"Password\").press(\"ControlOrMeta+a\")"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Password",
+      "value": "Phone./c",
+      "raw": "page.get_by_placeholder(\"Password\").fill(\"Phone./c\")"
+    },
+    {
+      "action": "press",
+      "selector": "placeholder:Password",
+      "value": "ControlOrMeta+a",
+      "raw": "page.get_by_placeholder(\"Password\").press(\"ControlOrMeta+a\")"
+    },
+    {
+      "action": "fill",
+      "selector": "placeholder:Password",
+      "value": "Phone.com123!",
+      "raw": "page.get_by_placeholder(\"Password\").fill(\"Phone.com123!\")"
+    },
+    {
+      "action": "click",
+      "selector": "role:\"button\", name=\"Sign in\"",
+      "value": "",
+      "raw": "page.get_by_role(\"button\", name=\"Sign in\").click()"
+    },
+    {
+      "action": "navigate",
+      "url": "https://my.phone.com/e1844228/bill-and-pay"
+    }
+  ],
+  "recorded_at": "2026-02-26T06:31:50Z"
+}
