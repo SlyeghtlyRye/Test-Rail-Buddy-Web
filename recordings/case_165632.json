@@ -1,6 +1,4 @@
 {
-  "case_id": 165632,
-  "environment_url": "https://phone.com",
   "actions": [
     {
       "action": "navigate",
@@ -19,66 +17,6 @@
     {
       "action": "fill",
       "selector": "placeholder:Email or username",
-      "value": "",
-      "raw": "page.get_by_placeholder(\"Email or username\").fill(\"\")"
-    },
-    {
-      "action": "click",
-      "selector": "a",
-      "value": "",
-      "raw": "page.locator(\"a\").filter(has_text=\"Sign in with extension\").click()"
-    },
-    {
-      "action": "fill",
-      "selector": "placeholder:Phone.com number",
-      "value": "+1-112",
-      "raw": "page.get_by_placeholder(\"Phone.com number\").fill(\"+1-112\")"
-    },
-    {
-      "action": "fill",
-      "selector": "placeholder:Extension",
-      "value": "2223",
-      "raw": "page.get_by_placeholder(\"Extension\").fill(\"2223\")"
-    },
-    {
-      "action": "fill",
-      "selector": "placeholder:Voicemail PIN",
-      "value": "33333",
-      "raw": "page.get_by_placeholder(\"Voicemail PIN\").fill(\"33333\")"
-    },
-    {
-      "action": "click",
-      "selector": "role:\"button\", name=\"Sign in\"",
-      "value": "",
-      "raw": "page.get_by_role(\"button\", name=\"Sign in\").click()"
-    },
-    {
-      "action": "click",
-      "selector": "role:\"button\", name=\"Go back\"",
-      "value": "",
-      "raw": "page.get_by_role(\"button\", name=\"Go back\").click()"
-    },
-    {
-      "action": "click",
-      "selector": "placeholder:Phone.com number",
-      "value": "",
-      "raw": "page.get_by_placeholder(\"Phone.com number\").click()"
-    },
-    {
-      "action": "click",
-      "selector": "text:Sign in with your email or usernameSign inNeed help signing in?By continuing",
-      "value": "",
-      "raw": "page.get_by_text(\"Sign in with your email or usernameSign inNeed help signing in?By continuing\").click()"
-    },
-    {
-      "action": "click",
-      "selector": "a",
-      "value": "",
-      "raw": "page.locator(\"a\").filter(has_text=\"Sign in with your email or\").click()"
-    },
-    {
-      "action": "fill",
-      "selector": "placeholder:Email or username",
       "value": "ryan3018@gmail.com",
       "raw": "page.get_by_placeholder(\"Email or username\").fill(\"ryan3018@gmail.com\")"
     },
@@ -87,30 +25,6 @@
       "selector": "placeholder:Email or username",
       "value": "Tab",
       "raw": "page.get_by_placeholder(\"Email or username\").press(\"Tab\")"
-    },
-    {
-      "action": "fill",
-      "selector": "placeholder:Password",
-      "value": "maell",
-      "raw": "page.get_by_placeholder(\"Password\").fill(\"maell\")"
-    },
-    {
-      "action": "press",
-      "selector": "placeholder:Password",
-      "value": "ControlOrMeta+a",
-      "raw": "page.get_by_placeholder(\"Password\").press(\"ControlOrMeta+a\")"
-    },
-    {
-      "action": "fill",
-      "selector": "placeholder:Password",
-      "value": "Phone./c",
-      "raw": "page.get_by_placeholder(\"Password\").fill(\"Phone./c\")"
-    },
-    {
-      "action": "press",
-      "selector": "placeholder:Password",
-      "value": "ControlOrMeta+a",
-      "raw": "page.get_by_placeholder(\"Password\").press(\"ControlOrMeta+a\")"
     },
     {
       "action": "fill",
@@ -127,7 +41,117 @@
     {
       "action": "navigate",
       "url": "https://my.phone.com/e1844228/bill-and-pay"
+    },
+    {
+      "action": "click",
+      "selector": "testid:closeIcon",
+      "value": "",
+      "raw": "page.get_by_test_id(\"closeIcon\").nth(1).click()",
+      "nth": 1
+    },
+    {
+      "action": "click",
+      "selector": "role:\"link\", name=\"Texts 9+\"",
+      "value": "",
+      "raw": "page.get_by_role(\"link\", name=\"Texts 9+\").click()"
+    },
+    {
+      "action": "fill",
+      "selector": "#type-message-field",
+      "value": "test",
+      "raw": "page.locator(\"#type-message-field\").fill(\"test\")"
+    },
+    {
+      "action": "click",
+      "selector": "circle",
+      "value": "",
+      "raw": "page.locator(\"circle\").nth(4).click()",
+      "nth": 4
+    },
+    {
+      "action": "click",
+      "selector": "title:Send Message",
+      "value": "",
+      "raw": "page.get_by_title(\"Send Message\").locator(\"path\").nth(1).click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad-button",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad-button\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad6",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad6\").get_by_text(\"6\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad1",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad1\").get_by_text(\"1\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad9",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad9\").get_by_text(\"9\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad7",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad7\").get_by_text(\"7\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad9",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad9\").get_by_text(\"9\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad4",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad4\").get_by_text(\"4\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad8",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad8\").get_by_text(\"8\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad2",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad2\").get_by_text(\"2\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad3",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad3\").get_by_text(\"3\").click()"
+    },
+    {
+      "action": "click",
+      "selector": "testid:dialpad4",
+      "value": "",
+      "raw": "page.get_by_test_id(\"dialpad4\").get_by_text(\"4\").click()"
+    },
+    {
+      "action": "unknown",
+      "raw": "page.once(\"dialog\", lambda dialog: dialog.dismiss())"
+    },
+    {
+      "action": "click",
+      "selector": "testid:placeCall",
+      "value": "",
+      "raw": "page.get_by_test_id(\"placeCall\").click()"
     }
   ],
-  "recorded_at": "2026-02-26T06:31:50Z"
+  "environment_url": "https://Phone.com",
+  "recorded_at": "2026-03-01T21:08:20Z",
+  "case_id": 165632
 }
