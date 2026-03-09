@@ -29,6 +29,28 @@ function stripHtml(text) {
     .trim();
 }
 
+// Strip the simulation JSON blob from test data before displaying it
+function stripSimulationData(text) {
+  if (!text) return "";
+  if (text.includes("---SIMULATION_DATA---")) {
+    return text.split("---SIMULATION_DATA---")[0].trim();
+  }
+  // If it looks like raw JSON (old format), don't show it at all in the detail view
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) return "";
+  return text;
+}
+
+// Returns true if the field contains a simulation recording payload
+function hasSimulationData(text) {
+  if (!text) return false;
+  if (text.includes("---SIMULATION_DATA---")) return true;
+  const trimmed = text.trim();
+  // Old format: raw JSON list of actions
+  if (trimmed.startsWith("[") || (trimmed.startsWith("{") && trimmed.includes('"actions"'))) return true;
+  return false;
+}
+
 const styleTag = document.createElement("style");
 styleTag.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
 document.head.appendChild(styleTag);
@@ -110,21 +132,12 @@ export default function ProjectsPage() {
           }
         } catch (err) {
           console.error("Failed to restore session, falling back to fresh load", err);
-          // Clear any partial state so the page is usable
-          setSelectedProject(null);
-          setSelectedSuite(null);
-          setSections([]);
-          setCases({});
-          setExpandedSections({});
-          setSelectedCase(null);
-          setSelectedCaseId(null);
-          // Still try to load projects so the page isn't blank
+          setSelectedProject(null); setSelectedSuite(null); setSections([]);
+          setCases({}); setExpandedSections({}); setSelectedCase(null); setSelectedCaseId(null);
           try {
             const projRes = await getProjects(credentials);
             setProjects(projRes.data);
-          } catch (e) {
-            console.error("Failed to load projects on fallback", e);
-          }
+          } catch (e) { console.error("Failed to load projects on fallback", e); }
         } finally {
           setLoading(false);
           setRestoringSession(false);
@@ -136,18 +149,31 @@ export default function ProjectsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    setEditMode(false);
-    setEditError("");
-  }, [selectedCaseId]);
+  useEffect(() => { setEditMode(false); setEditError(""); }, [selectedCaseId]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") setToolsOpen(false);
-    };
+    const handleKeyDown = (e) => { if (e.key === "Escape") setToolsOpen(false); };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Check if a recording exists — passes credentials so backend can fall back
+  // to TestRail if the local file has been cleared on this machine.
+  const checkRecording = async (caseId) => {
+    try {
+      const params = new URLSearchParams();
+      if (credentials?.url)      params.set("url",      credentials.url);
+      if (credentials?.email)    params.set("email",    credentials.email);
+      if (credentials?.password) params.set("password", credentials.password);
+      const qs = params.toString();
+      const res = await axios.get(
+        `${BASE_URL}/api/simulate/playwright/recordings/${caseId}${qs ? "?" + qs : ""}`
+      );
+      setCaseRecording(res.data.exists);
+    } catch {
+      setCaseRecording(false);
+    }
+  };
 
   const handleDeleteCase = async () => {
     if (!window.confirm(`Delete "${selectedCase.title}"? This cannot be undone.`)) return;
@@ -157,11 +183,8 @@ export default function ProjectsPage() {
         const casesRes = await getCases(credentials, selectedProject.id, selectedSuite?.id, selectedSection.id);
         setCases(prev => ({ ...prev, [selectedSection.id]: casesRes.data.cases || [] }));
       }
-      setSelectedCase(null);
-      setSelectedCaseId(null);
-    } catch (err) {
-      console.error("Failed to delete case", err);
-    }
+      setSelectedCase(null); setSelectedCaseId(null);
+    } catch (err) { console.error("Failed to delete case", err); }
   };
 
   const handleOpenCase = async (c) => {
@@ -170,19 +193,9 @@ export default function ProjectsPage() {
     if (section) await handleCaseClick(c, section);
   };
 
-  const checkRecording = async (caseId) => {
-    try {
-      const res = await axios.get(`${BASE_URL}/api/simulate/playwright/recordings/${caseId}`);
-      setCaseRecording(res.data.exists);
-    } catch {
-      setCaseRecording(false);
-    }
-  };
-
   const handleEditSave = async (fields) => {
     if (!fields.title?.trim()) { setEditError("Title is required."); return; }
-    setEditSaving(true);
-    setEditError("");
+    setEditSaving(true); setEditError("");
     try {
       await axios.post(`${BASE_URL}/api/cases/${selectedCase.id}/update`, {
         ...credentials,
@@ -222,24 +235,18 @@ export default function ProjectsPage() {
   };
 
   const handleMouseDown = (e) => {
-    e.preventDefault();
-    isResizing.current = true;
-    document.body.style.userSelect = "none";
+    e.preventDefault(); isResizing.current = true; document.body.style.userSelect = "none";
     const onMouseMove = (e) => { if (!isResizing.current) return; setPanelWidth(Math.min(600, Math.max(150, e.clientX))); };
     const onMouseUp = () => { isResizing.current = false; document.body.style.userSelect = ""; document.removeEventListener("mousemove", onMouseMove); document.removeEventListener("mouseup", onMouseUp); };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", onMouseUp);
   };
 
   const handleMiddleMouseDown = (e) => {
-    e.preventDefault();
-    isResizingMiddle.current = true;
-    document.body.style.userSelect = "none";
+    e.preventDefault(); isResizingMiddle.current = true; document.body.style.userSelect = "none";
     const startX = e.clientX, startWidth = middleWidth;
     const onMouseMove = (e) => { if (!isResizingMiddle.current) return; setMiddleWidth(Math.min(900, Math.max(200, startWidth + e.clientX - startX))); };
     const onMouseUp = () => { isResizingMiddle.current = false; document.body.style.userSelect = ""; document.removeEventListener("mousemove", onMouseMove); document.removeEventListener("mouseup", onMouseUp); };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", onMouseUp);
   };
 
   const loadProjects = async () => {
@@ -280,12 +287,10 @@ export default function ProjectsPage() {
     if (isExpanded) { setExpandedSections(prev => ({ ...prev, [section.id]: false })); setSelectedSection(section); return; }
     setExpandedSections(prev => ({ ...prev, [section.id]: true }));
     setSelectedSection(section);
-
     if (cases[section.id]) {
       setVisibleCounts(prev => ({ ...prev, [section.id]: true }));
       setTimeout(() => setVisibleCounts(prev => ({ ...prev, [section.id]: false })), 3000);
     }
-
     if (!cases[section.id]) {
       setLoadingSections(prev => ({ ...prev, [section.id]: true }));
       try {
@@ -308,9 +313,7 @@ export default function ProjectsPage() {
     } catch (err) { console.error("Failed to reload cases", err); }
     setLoadingSections(prev => ({ ...prev, [section.id]: false }));
     if (selectCaseId) {
-      setSelectedCaseId(selectCaseId);
-      setCaseLoading(true);
-      setSelectedCase(null);
+      setSelectedCaseId(selectCaseId); setCaseLoading(true); setSelectedCase(null);
       try { const caseRes = await getCase(credentials, selectCaseId); setSelectedCase(caseRes.data); }
       catch (err) { console.error("Failed to load new case", err); }
       setCaseLoading(false);
@@ -319,8 +322,7 @@ export default function ProjectsPage() {
 
   const handleCaseClick = async (c, section) => {
     setSelectedCaseId(c.id); setSelectedSection(section);
-    setCaseLoading(true); setSelectedCase(null);
-    setCaseRecording(null);
+    setCaseLoading(true); setSelectedCase(null); setCaseRecording(null);
     try { const res = await getCase(credentials, c.id); setSelectedCase(res.data); }
     catch (err) { console.error("Failed to load case", err); }
     setCaseLoading(false);
@@ -339,11 +341,7 @@ export default function ProjectsPage() {
         <span style={styles.sectionIcon}>{expandedSections[section.id] ? "▼" : "▶"}</span>
         <span style={styles.sectionName}>{section.name}</span>
         {cases[section.id] !== undefined && (
-          <span style={{
-            ...styles.caseCount,
-            opacity: visibleCounts[section.id] ? 1 : 0,
-            transition: "opacity 1s ease",
-          }}>
+          <span style={{ ...styles.caseCount, opacity: visibleCounts[section.id] ? 1 : 0, transition: "opacity 1s ease" }}>
             {cases[section.id].length} cases
           </span>
         )}
@@ -367,10 +365,18 @@ export default function ProjectsPage() {
     </div>
   );
 
+  // Derive whether this case has a simulation recording stored in TestRail
+  // (used to show the badge in view mode without waiting for checkRecording)
+  const caseHasStoredSimulation = selectedCase
+    ? hasSimulationData(selectedCase.custom_tc_test_data)
+    : false;
+
+  // Final recording status: true if local check confirmed it, OR if TestRail data found
+  const recordingAvailable = caseRecording || caseHasStoredSimulation;
+
   return (
     <div ref={containerRef} style={styles.container}>
 
-      {/* Session restore overlay */}
       {restoringSession && (
         <div style={styles.restoringOverlay}>
           <div style={styles.restoringBox}>
@@ -389,7 +395,6 @@ export default function ProjectsPage() {
       </div>
 
       <div style={styles.content}>
-        {/* Left panel */}
         {leftCollapsed && <div style={styles.collapsedTab} onClick={() => setLeftCollapsed(false)}><span style={styles.collapsedLabel}>▶ Nav</span></div>}
         {!leftCollapsed && (
           <div style={{ ...styles.panelOuter, width: `${panelWidth}px` }}>
@@ -415,7 +420,6 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Middle panel */}
         {middleCollapsed && <div style={styles.collapsedTab} onClick={() => setMiddleCollapsed(false)}><span style={styles.collapsedLabel}>▶ Cases</span></div>}
         {!middleCollapsed && (
           <div style={{ ...styles.panelOuter, width: `${middleWidth}px` }}>
@@ -433,34 +437,26 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Right panel */}
         {rightCollapsed && <div style={styles.collapsedTab} onClick={() => setRightCollapsed(false)}><span style={styles.collapsedLabel}>▶ Detail</span></div>}
         {!rightCollapsed && (
           <div style={styles.rightPanel}>
             <div style={styles.panelHeader}>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
                 <span style={styles.label}>{editMode ? "Editing Case" : "Case Detail"}</span>
-                {selectedCase && (
-                  <span style={styles.caseHeaderTitle}>{selectedCase.title}</span>
-                )}
+                {selectedCase && <span style={styles.caseHeaderTitle}>{selectedCase.title}</span>}
               </div>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
                 {selectedCase && !editMode && (
                   <button style={styles.editBtn} onClick={() => { setEditMode(true); setEditError(""); }}>Edit</button>
                 )}
                 {editMode && (
-                  <button style={styles.cancelBtn} onClick={() => { setEditMode(false); setEditError(""); }} disabled={editSaving}>
-                    Cancel
-                  </button>
+                  <button style={styles.cancelBtn} onClick={() => { setEditMode(false); setEditError(""); }} disabled={editSaving}>Cancel</button>
                 )}
                 <button style={styles.collapseBtn} onClick={() => setRightCollapsed(true)}>◀</button>
               </div>
             </div>
 
-            {loading && (
-              <p style={styles.loading}>Restoring session...</p>
-            )}
-
+            {loading && <p style={styles.loading}>Restoring session...</p>}
             {!loading && caseLoading && <p style={styles.loading}>Loading case...</p>}
             {!loading && !caseLoading && !selectedCase && <p style={styles.hint}>Select a test case to view details</p>}
 
@@ -474,7 +470,30 @@ export default function ProjectsPage() {
                 {selectedCase.custom_tc_use_case && <div style={styles.caseBlock}><span style={styles.fieldLabel}>Use Case</span><p style={styles.blockText}>{stripHtml(selectedCase.custom_tc_use_case)}</p></div>}
                 {selectedCase.custom_steps && <div style={styles.caseBlock}><span style={styles.fieldLabel}>Test Steps</span><p style={styles.blockText}>{stripHtml(selectedCase.custom_steps)}</p></div>}
                 {selectedCase.custom_expected && <div style={styles.caseBlock}><span style={styles.fieldLabel}>Expected Result</span><p style={styles.blockText}>{stripHtml(selectedCase.custom_expected)}</p></div>}
-                {selectedCase.custom_tc_test_data && <div style={styles.caseBlock}><span style={styles.fieldLabel}>Test Data</span><p style={styles.blockText}>{stripHtml(selectedCase.custom_tc_test_data)}</p></div>}
+
+                {/* Simulation recording status — shown instead of raw test data blob */}
+                <div style={styles.caseField}>
+                  <span style={styles.fieldLabel}>Simulation Recording</span>
+                  {caseRecording === null && caseHasStoredSimulation ? (
+                    // Immediately show "available" from TestRail data while async check runs
+                    <span style={styles.simBadgeAvailable}>● Available (TestRail)</span>
+                  ) : caseRecording === null ? (
+                    <span style={styles.simBadgeChecking}>Checking…</span>
+                  ) : recordingAvailable ? (
+                    <span style={styles.simBadgeAvailable}>● Available</span>
+                  ) : (
+                    <span style={styles.simBadgeMissing}>○ No recording yet</span>
+                  )}
+                </div>
+
+                {/* Show test data only if it's NOT a simulation blob */}
+                {selectedCase.custom_tc_test_data && !hasSimulationData(selectedCase.custom_tc_test_data) && (
+                  <div style={styles.caseBlock}>
+                    <span style={styles.fieldLabel}>Test Data</span>
+                    <p style={styles.blockText}>{stripHtml(selectedCase.custom_tc_test_data)}</p>
+                  </div>
+                )}
+
                 {selectedCase.custom_tc_figma_spec && <div style={styles.caseField}><span style={styles.fieldLabel}>Figma Spec</span><span style={styles.fieldValue}>{selectedCase.custom_tc_figma_spec}</span></div>}
               </div>
             )}
@@ -496,15 +515,12 @@ export default function ProjectsPage() {
                 saving={editSaving}
                 onSimulate={() => {
                   sessionStorage.setItem("trb_state", JSON.stringify({
-                    selectedProject,
-                    selectedSuite,
-                    selectedSection,
-                    selectedCaseId,
-                    expandedSections,
+                    selectedProject, selectedSuite, selectedSection,
+                    selectedCaseId, expandedSections,
                   }));
                   navigate(`/simulate/${selectedCase.id}`);
                 }}
-                recordingExists={caseRecording}
+                recordingExists={recordingAvailable}
               />
             )}
           </div>
@@ -560,7 +576,6 @@ const styles = {
   loading: { color: "var(--text-muted)" },
   hint: { color: "var(--text-dim)", fontSize: "0.95rem", marginTop: "40px", textAlign: "center" },
   caseDetail: { display: "flex", flexDirection: "column", gap: "16px" },
-  caseTitle: { color: "var(--text)", fontSize: "1.1rem", marginBottom: "8px" },
   caseField: { display: "flex", flexDirection: "column", gap: "4px", padding: "10px", backgroundColor: "var(--bg-panel)", borderRadius: "6px" },
   caseBlock: { display: "flex", flexDirection: "column", gap: "8px", padding: "10px", backgroundColor: "var(--bg-panel)", borderRadius: "6px" },
   fieldLabel: { color: "var(--text-dim)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
@@ -569,36 +584,11 @@ const styles = {
   caseHeaderTitle: { color: "var(--text)", fontSize: "0.95rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
   suitesScroll: { flex: 1, overflowY: "auto", marginTop: "4px", scrollbarWidth: "none", msOverflowStyle: "none" },
   caseCount: { marginLeft: "auto", fontSize: "0.75rem", color: "var(--text-dim)", backgroundColor: "var(--bg-panel)", padding: "1px 7px", borderRadius: "10px", flexShrink: 0 },
-  restoringOverlay: {
-    position: "fixed",
-    inset: 0,
-    backgroundColor: "rgba(15,23,42,0.85)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-    pointerEvents: "all",
-  },
-  restoringBox: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "16px",
-    padding: "32px 48px",
-    backgroundColor: "var(--bg-panel, #1e293b)",
-    border: "1px solid var(--border, #334155)",
-    borderRadius: "12px",
-  },
-  restoringText: {
-    color: "var(--text, #f1f5f9)",
-    fontSize: "0.95rem",
-  },
-  spinner: {
-    width: "24px",
-    height: "24px",
-    border: "2px solid var(--border, #334155)",
-    borderTop: "2px solid var(--accent, #3b82f6)",
-    borderRadius: "50%",
-    animation: "spin 0.8s linear infinite",
-  },
+  simBadgeAvailable: { color: "#22c55e", fontSize: "0.88rem", fontWeight: "600" },
+  simBadgeMissing:   { color: "var(--text-dim)", fontSize: "0.88rem" },
+  simBadgeChecking:  { color: "var(--text-muted)", fontSize: "0.88rem", fontStyle: "italic" },
+  restoringOverlay: { position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, pointerEvents: "all" },
+  restoringBox: { display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "32px 48px", backgroundColor: "var(--bg-panel, #1e293b)", border: "1px solid var(--border, #334155)", borderRadius: "12px" },
+  restoringText: { color: "var(--text, #f1f5f9)", fontSize: "0.95rem" },
+  spinner: { width: "24px", height: "24px", border: "2px solid var(--border, #334155)", borderTop: "2px solid var(--accent, #3b82f6)", borderRadius: "50%", animation: "spin 0.8s linear infinite" },
 };
