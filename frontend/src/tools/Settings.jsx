@@ -6,14 +6,14 @@
     const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
     const VERSION = {
-    number: "0.2.0",
-    updated: "2026-02-18",
+    number: "0.3.0",
+    updated: "2026-04-19",
     notes: [
-        "Added Tools panel:",
-        "— CreateCase, CreateSection",
-        "— ExportCases, BulkEditIDs",
-        "— FixTestNames, ConvertFormat",
-        "— Settings with API Test, App Framework viewer and Version tracking",
+        "Final release — fully deployed:",
+        "— Demo mode: explore without a TestRail account",
+        "— Backend hosted on Render.com",
+        "— Frontend hosted on Render static site",
+        "— App Structure & Dependency Map working in production",
     ],
     };
 

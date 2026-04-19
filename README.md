@@ -1,8 +1,10 @@
-# TestRail Buddy
+# TestRail Buddy — v0.3.0
 
 A web app for browsing and bulk-editing TestRail test cases. Ported from an internal Tkinter desktop tool into a deployable full-stack application.
 
 **Stack:** React + Vite (frontend) · FastAPI + Python (backend) · Playwright (browser automation)
+
+> **Final release** — fully deployed and feature-complete as of April 2026.
 
 ---
 
