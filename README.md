@@ -25,7 +25,7 @@ A web app for browsing and bulk-editing TestRail test cases. Ported from an inte
 
 > Frontend hosted on **Render.com** (static site) · Backend hosted on **Render.com**
 
-The app opens in demo mode by default. To connect to a real TestRail instance, enter your TestRail URL, email, and API key on the login screen.
+The app opens in demo mode by default. To connect to a real TestRail instance, enter your TestRail URL, email, and Password on the login screen.
 
 ---
 
