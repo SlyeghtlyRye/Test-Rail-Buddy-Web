@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { DEMO_CASES, DEMO_SUITES, DEMO_SECTIONS } from "../demoData";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const CASE_TYPES = [
   { id: 1,  label: "Automated"     },

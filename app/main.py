@@ -29,4 +29,4 @@ app.include_router(simulate_playwright.router, prefix="/api/simulate/playwright"
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.3.0"}

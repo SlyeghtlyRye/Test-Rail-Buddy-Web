@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { DEMO_CASES, DEMO_SECTIONS } from "../demoData";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 function flattenSections(sections, parentId = null, depth = 0) {
   return sections

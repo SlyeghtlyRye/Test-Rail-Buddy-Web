@@ -6,7 +6,7 @@ import ToolsPanel from "../components/ToolsPanel";
 import CaseForm from "../tools/CaseForm";
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 function stripHtml(text) {
   if (!text) return "";
