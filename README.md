@@ -65,33 +65,36 @@ Render restarts the backend automatically.
 
 ## Run Locally
 
-**First-time setup** (run once after cloning):
+### Prerequisites
+- [Python 3.12+](https://www.python.org/downloads/)
+- [Node.js](https://nodejs.org/)
+- [Git](https://git-scm.com/)
+
+### First-time setup (run once)
 ```powershell
 git clone https://github.com/SlyeghtlyRye/Test-Rail-Buddy-Web
 cd Test-Rail-Buddy-Web
 pip install -r requirements.txt
-cd frontend && npm install && cd ..
+cd frontend
+npm install
+cd ..
 ```
 
-**Start the app** (run each time):
+### Start the app (run each time)
 ```powershell
 .\start.ps1
 ```
-Starts both services and opens the browser automatically.
+Starts both the backend and frontend, then opens the browser automatically at `http://localhost:5173`.
 
-**Manual:**
+### Manual start (if you prefer separate terminals)
 ```bash
-# Backend
-pip install -r requirements.txt
+# Terminal 1 — Backend (from project root)
 uvicorn app.main:app --reload
 
-# Frontend (separate terminal)
+# Terminal 2 — Frontend
 cd frontend
-npm install
 npm run dev
 ```
-
-Copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL` if needed. Frontend runs on `http://localhost:5173`.
 
 ---
 
