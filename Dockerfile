@@ -16,6 +16,7 @@ RUN playwright install chromium
 RUN playwright install-deps chromium
 
 COPY app/ ./app/
+COPY frontend/src/ ./frontend/src/
 
 RUN adduser --disabled-password --gecos "" appuser && \
     chown -R appuser:appuser /app
