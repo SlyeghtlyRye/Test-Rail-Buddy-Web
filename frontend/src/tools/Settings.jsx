@@ -3,7 +3,7 @@
     import AppStructure from "./AppStructure";
     import DependencyMap from "./DependencyMap";
     import { THEMES, applyTheme, loadSavedTheme } from "../theme";
-    const BASE_URL = "http://localhost:8000";
+    const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
     const VERSION = {
     number: "0.2.0",
