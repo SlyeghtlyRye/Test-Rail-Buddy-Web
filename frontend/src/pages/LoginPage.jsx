@@ -11,7 +11,7 @@ import AppStructure from "../tools/AppStructure";
 import DependencyMap from "../tools/DependencyMap";
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const VERSION = {
   number: "0.2.0",
@@ -26,7 +26,7 @@ const VERSION = {
 };
 
 export default function LoginPage() {
-  const [url, setUrl] = useState("https://phonecom.testrail.io");
+  const [url, setUrl] = useState("https://your-instance.testrail.io");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

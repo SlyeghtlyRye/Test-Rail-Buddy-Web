@@ -11,7 +11,7 @@ import {
   getDemoCaseDetail,
 } from "./demoData";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // Wraps a value to match the axios response shape: { data: value }
 const mockResponse = (data) => ({ data });
