@@ -44,6 +44,9 @@ const STATIC_EDGES = [
   { from: "casesapi",      to: "testrail" },
   { from: "toolsapi",      to: "testrail" },
   { from: "simulateapi",   to: "testrail" },
+  { from: "api",           to: "demodata" },
+  { from: "authctx",       to: "demodata" },
+  { from: "login",         to: "demodata" },
 ];
 
 const KNOWN_NODES = {
@@ -74,6 +77,7 @@ const KNOWN_NODES = {
   "structureapi":  { label: "structure.py",           sub: "/api/structure/",              description: "Scans the filesystem and returns a documented/undocumented file tree. Powers both AppStructure and DependencyMap.",                                                                                                                             x: 960, y: 500, color: "#22c55e", group: "backend"       },
   "simulateapi":   { label: "simulate_playwright.py", sub: "/api/simulate/playwright/",    description: "POST /record and /playback endpoints. Launches a visible Playwright browser for manual recording, stores actions as JSON, and replays them headlessly step-by-step returning a structured pass/fail HTML report. Also updates TestRail case steps and test data on save.", x: 760, y: 500, color: "#22c55e", group: "backend" },
   "testrail":      { label: "TestRail",               sub: "External API",                 description: "The external TestRail REST API — the real data source. All backend routers ultimately call through here.",                                                                                                                                      x: 760,  y: 920, color: "#64748b", group: "external"      },
+"demodata":        { label: "demoData.js",            sub: "Demo mock data",               description: "Mock projects, suites, sections and cases for demo mode. Intercepted by api.js when credentials.demo is true.",                                                                                                                                 x: 940, y: 130, color: "#ec4899", group: "style" },
 };
 
 const FILE_TO_NODE = Object.fromEntries(

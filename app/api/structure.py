@@ -59,7 +59,8 @@ KNOWN = {
     "main.py":            "FastAPI entry point — creates the app instance and registers all routers. The first file the server loads; misconfiguring it breaks everything.",
     "__init__.py":        "Marks the app directory as a Python package. Required for relative imports between modules to resolve correctly.",
 
-
+    # Demo Data
+    "demoData.js":        "Demo Data for Demo Mode"
 }
 
 

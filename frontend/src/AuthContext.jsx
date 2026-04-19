@@ -1,4 +1,9 @@
+// ─────────────────────────────────────────────
+//  AuthContext.jsx  —  Credentials + Demo mode
+//  Drop this in: frontend/src/AuthContext.jsx
+// ─────────────────────────────────────────────
 import { createContext, useContext, useState } from "react";
+import { DEMO_CREDENTIALS } from "./demoData";
 
 const AuthContext = createContext(null);
 
@@ -14,13 +19,22 @@ export function AuthProvider({ children }) {
     setCredentials(creds);
   };
 
+  // Enters demo mode — no real credentials, no backend needed
+  const loginDemo = () => {
+    sessionStorage.setItem(
+      "testrail_credentials",
+      JSON.stringify(DEMO_CREDENTIALS)
+    );
+    setCredentials(DEMO_CREDENTIALS);
+  };
+
   const logout = () => {
     sessionStorage.removeItem("testrail_credentials");
     setCredentials(null);
   };
 
   return (
-    <AuthContext.Provider value={{ credentials, login, logout }}>
+    <AuthContext.Provider value={{ credentials, login, loginDemo, logout }}>
       {children}
     </AuthContext.Provider>
   );
