@@ -8,7 +8,7 @@ settings = get_settings()
 app = FastAPI(
     title="TestRail Buddy",
     description="Web interface for viewing and editing TestRail test cases",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
