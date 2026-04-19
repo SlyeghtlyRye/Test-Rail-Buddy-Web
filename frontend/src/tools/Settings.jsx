@@ -32,6 +32,8 @@
     { label: "API Routes", path: "app/api/", desc: "auth.py, projects.py, cases.py, tools.py" },
     { label: "Core", path: "app/core/", desc: "config.py, testrail.py" },
     { label: "Infrastructure", path: "root/", desc: "Dockerfile, docker-compose.yml, k8s/, start.ps1" },
+    { label: "Demo Data", path: "frontend/src/demoData.js", desc: "Mock data for demo mode — projects, suites, sections, cases" },
+
     ];
 
     export default function Settings({ credentials }) {

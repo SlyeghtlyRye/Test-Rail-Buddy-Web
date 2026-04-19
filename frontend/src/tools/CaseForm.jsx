@@ -1,11 +1,15 @@
+// ─────────────────────────────────────────────
+//  CaseForm.jsx  —  with Demo Mode guards
+//  Drop this in: frontend/src/tools/CaseForm.jsx
+// ─────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import axios from "axios";
 
 const BASE_URL = "http://localhost:8000";
 
-const TYPE_TEXTAREA = 3;
-const TYPE_CHECKBOX = 5;
-const TYPE_DROPDOWN = 6;
+const TYPE_TEXTAREA    = 3;
+const TYPE_CHECKBOX    = 5;
+const TYPE_DROPDOWN    = 6;
 const TYPE_MULTISELECT = 12;
 
 const FIXED_FIELDS = [
@@ -14,6 +18,10 @@ const FIXED_FIELDS = [
   "custom_tc_preconditions","custom_tc_test_data","custom_tc_figma_spec",
   "custom_preconds","custom_expected_result","custom_steps_separated",
 ];
+
+// ── Demo stubs ────────────────────────────────
+// Returns an empty custom-fields list so CaseForm renders with no extra fields.
+const DEMO_FIELDS_RESPONSE = [];
 
 function parseOptions(raw) {
   if (!raw) return [];
@@ -24,25 +32,24 @@ function parseOptions(raw) {
   });
 }
 
-
 function stripHtml(text) {
   if (!text) return "";
   return text
-    .replace(/<br\s*\/?>/gi, "\n")           // line breaks
-    .replace(/<\/p>/gi, "\n")                // paragraph ends
-    .replace(/<\/h[1-6]>/gi, "\n")           // heading ends
-    .replace(/<\/tr>/gi, "\n")               // table row ends
-    .replace(/<\/td>/gi, "\t")               // table cells → tab-separated
-    .replace(/<\/li>/gi, "\n")               // list item ends
-    .replace(/<li>/gi, "• ")                 // list item starts → bullet
-    .replace(/<[^>]+>/g, "")                 // strip remaining tags
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/h[1-6]>/gi, "\n")
+    .replace(/<\/tr>/gi, "\n")
+    .replace(/<\/td>/gi, "\t")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li>/gi, "• ")
+    .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")                  // apostrophe entity
-    .replace(/\n{3,}/g, "\n\n")             // collapse excessive blank lines
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -64,32 +71,51 @@ export default function CaseForm({
   sections = null,
   onSectionChange = null,
 }) {
-  const [fields, setFields] = useState(null);
+  const [fields, setFields]           = useState(null);
   const [customFields, setCustomFields] = useState([]);
-  const [extraOpen, setExtraOpen] = useState(false);
-  const [idLoading, setIdLoading] = useState(false);
-  const [idApplied, setIdApplied] = useState(false);
+  const [extraOpen, setExtraOpen]     = useState(false);
+  const [idLoading, setIdLoading]     = useState(false);
+  const [idApplied, setIdApplied]     = useState(false);
 
+  const isDemo = !!credentials?.demo;
+
+  // ── Load field definitions ────────────────────────────────────────────────
   useEffect(() => {
     if (!credentials) return;
+
+    if (isDemo) {
+      // Skip the backend call entirely — no custom fields in demo
+      const base = initialValues
+        ? buildFromExisting(initialValues, [])
+        : buildDefaults([]);
+      setCustomFields([]);
+      setFields(base);
+      setIdApplied(!!base.custom_tc_test_case_id);
+      return;
+    }
+
     axios.post(`${BASE_URL}/api/cases/fields`, credentials)
       .then(res => {
         const custom = res.data.filter(f =>
           f.system_name.startsWith("custom_") && f.is_active && !FIXED_FIELDS.includes(f.system_name)
         );
         setCustomFields(custom);
-        const base = initialValues ? buildFromExisting(initialValues, custom) : buildDefaults(custom);
+        const base = initialValues
+          ? buildFromExisting(initialValues, custom)
+          : buildDefaults(custom);
         setFields(base);
         setIdApplied(!!base.custom_tc_test_case_id);
       })
       .catch(err => console.error("Failed to load fields", err));
   }, []);
 
+  // ── Auto-assign ID on section change (create mode only) ──────────────────
   useEffect(() => {
     if (initialValues || !selectedSection || !fields) return;
     autoAssignId(true);
   }, [selectedSection?.id]);
 
+  // ── Field builders ────────────────────────────────────────────────────────
   const buildDefaults = (custom) => {
     const base = {
       title: "", custom_tc_test_case_id: "", custom_tc_name: "",
@@ -112,16 +138,16 @@ export default function CaseForm({
 
   const buildFromExisting = (existing, custom) => {
     const base = {
-      title: existing.title || "",
+      title:                  existing.title                  || "",
       custom_tc_test_case_id: existing.custom_tc_test_case_id || "",
-      custom_tc_name: existing.custom_tc_name || "",
-      custom_tc_category: existing.custom_tc_category || "",
-      custom_preconds: stripHtml(existing.custom_preconds || ""),
-      custom_tc_use_case: stripHtml(existing.custom_tc_use_case || ""),
-      custom_steps: stripHtml(existing.custom_steps || ""),
-      custom_expected: stripHtml(existing.custom_expected || ""),
-      custom_tc_test_data: stripHtml(existing.custom_tc_test_data || ""),
-      custom_tc_figma_spec: existing.custom_tc_figma_spec || "",
+      custom_tc_name:         existing.custom_tc_name         || "",
+      custom_tc_category:     existing.custom_tc_category     || "",
+      custom_preconds:        stripHtml(existing.custom_preconds        || ""),
+      custom_tc_use_case:     stripHtml(existing.custom_tc_use_case     || ""),
+      custom_steps:           stripHtml(existing.custom_steps           || ""),
+      custom_expected:        stripHtml(existing.custom_expected        || ""),
+      custom_tc_test_data:    stripHtml(existing.custom_tc_test_data    || ""),
+      custom_tc_figma_spec:   existing.custom_tc_figma_spec   || "",
     };
     custom.forEach(f => {
       const key = f.system_name;
@@ -136,22 +162,48 @@ export default function CaseForm({
 
   const set = (key, val) => setFields(p => ({ ...p, [key]: val }));
 
+  // ── Auto-assign ID ────────────────────────────────────────────────────────
   const autoAssignId = async (silent = false) => {
     if (!selectedProject || !selectedSection) return;
     if (!silent) { setIdLoading(true); setIdApplied(false); }
+
+    if (isDemo) {
+      // In demo mode, derive the next ID from the mock cases already in demoData
+      // Import lazily to avoid a hard circular dep at module level
+      const { DEMO_CASES } = await import("../demoData");
+      const sectionCases = DEMO_CASES[selectedSection.id] || [];
+      const ids = sectionCases.map(c => c.custom_tc_test_case_id).filter(Boolean);
+      const pattern = /^([A-Za-z_-]+[-_])(\d+)$/;
+      const matches = ids.map(id => id.match(pattern)).filter(Boolean);
+      if (matches.length > 0) {
+        const latest = matches.reduce((max, m) =>
+          parseInt(m[2]) > parseInt(max[2]) ? m : max
+        );
+        const nextNum = String(parseInt(latest[2]) + 1).padStart(latest[2].length, "0");
+        setFields(p => ({ ...p, custom_tc_test_case_id: `${latest[1]}${nextNum}` }));
+        setIdApplied(true);
+      } else {
+        if (!silent) setFields(p => ({ ...p, custom_tc_test_case_id: "DEMO-001" }));
+      }
+      if (!silent) setIdLoading(false);
+      return;
+    }
+
     try {
       const res = await axios.post(`${BASE_URL}/api/cases/`, {
         ...credentials,
         project_id: selectedProject.id,
-        suite_id: selectedSuite?.id || null,
+        suite_id:   selectedSuite?.id || null,
         section_id: selectedSection.id,
-        limit: 250,
+        limit:      250,
       });
       const ids = (res.data.cases || []).map(c => c.custom_tc_test_case_id).filter(Boolean);
       const pattern = /^([A-Za-z_]+)_(\d+)$/;
       const matches = ids.map(id => id.match(pattern)).filter(Boolean);
       if (matches.length > 0) {
-        const latest = matches.reduce((max, m) => parseInt(m[2]) > parseInt(max[2]) ? m : max);
+        const latest = matches.reduce((max, m) =>
+          parseInt(m[2]) > parseInt(max[2]) ? m : max
+        );
         const nextNum = String(parseInt(latest[2]) + 1).padStart(latest[2].length, "0");
         setFields(p => ({ ...p, custom_tc_test_case_id: `${latest[1]}_${nextNum}` }));
         setIdApplied(true);
@@ -164,10 +216,11 @@ export default function CaseForm({
     if (!silent) setIdLoading(false);
   };
 
+  // ── Dynamic field renderer ────────────────────────────────────────────────
   const renderDynamicField = (f) => {
-    const key = f.system_name;
+    const key   = f.system_name;
     const label = f.name.replace(/_/g, " ");
-    const val = fields?.[key] ?? "";
+    const val   = fields?.[key] ?? "";
     if (f.type_id === TYPE_DROPDOWN || f.type_id === TYPE_MULTISELECT) {
       const opts = parseOptions(f.configs?.[0]?.options?.items);
       return (
@@ -180,17 +233,44 @@ export default function CaseForm({
       );
     }
     if (f.type_id === TYPE_TEXTAREA)
-      return <div key={key} style={styles.field}><label style={styles.label}>{label}</label><textarea style={styles.textarea} value={val} onChange={e => set(key, e.target.value)} /></div>;
+      return (
+        <div key={key} style={styles.field}>
+          <label style={styles.label}>{label}</label>
+          <textarea style={styles.textarea} value={val} onChange={e => set(key, e.target.value)} />
+        </div>
+      );
     if (f.type_id === TYPE_CHECKBOX)
-      return <div key={key} style={{ ...styles.field, flexDirection: "row", alignItems: "center", gap: "8px" }}><input type="checkbox" checked={!!val} onChange={e => set(key, e.target.checked)} /><label style={styles.label}>{label}</label></div>;
-    return <div key={key} style={styles.field}><label style={styles.label}>{label}</label><input style={styles.input} type="text" value={val} onChange={e => set(key, e.target.value)} /></div>;
+      return (
+        <div key={key} style={{ ...styles.field, flexDirection: "row", alignItems: "center", gap: "8px" }}>
+          <input type="checkbox" checked={!!val} onChange={e => set(key, e.target.checked)} />
+          <label style={styles.label}>{label}</label>
+        </div>
+      );
+    return (
+      <div key={key} style={styles.field}>
+        <label style={styles.label}>{label}</label>
+        <input style={styles.input} type="text" value={val} onChange={e => set(key, e.target.value)} />
+      </div>
+    );
   };
 
   if (!fields) return <p style={{ color: "var(--text-muted)" }}>Loading fields...</p>;
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={styles.container}>
-      {/* Section selector — only in create mode */}
+
+      {/* Demo mode banner */}
+      {isDemo && (
+        <div style={styles.demoBanner}>
+          <span style={styles.demoBadge}>DEMO</span>
+          <span style={styles.demoBannerText}>
+            Edits are not saved in demo mode.
+          </span>
+        </div>
+      )}
+
+      {/* Section selector — create mode only */}
       {sections && (
         <div style={styles.field}>
           <label style={styles.label}>Section</label>
@@ -215,7 +295,7 @@ export default function CaseForm({
         </div>
       )}
 
-    <div style={styles.field}>
+      <div style={styles.field}>
         <label style={styles.label}>Title *</label>
         <input style={styles.input} type="text" placeholder="Test case title" value={fields.title} onChange={e => set("title", e.target.value)} />
       </div>
@@ -236,7 +316,12 @@ export default function CaseForm({
             onChange={e => { set("custom_tc_test_case_id", e.target.value); setIdApplied(false); }}
           />
           <button
-            style={{ ...styles.btn, padding: "8px 12px", fontSize: "0.8rem", whiteSpace: "nowrap", minWidth: "64px", alignSelf: "stretch", backgroundColor: idApplied ? "#22c55e" : "var(--accent)" }}
+            style={{
+              ...styles.btn,
+              padding: "8px 12px", fontSize: "0.8rem", whiteSpace: "nowrap",
+              minWidth: "64px", alignSelf: "stretch",
+              backgroundColor: idApplied ? "#22c55e" : "var(--accent)",
+            }}
             onClick={() => autoAssignId(false)}
             disabled={!selectedSection || idLoading}
             type="button"
@@ -245,8 +330,6 @@ export default function CaseForm({
           </button>
         </div>
       </div>
-
-
 
       <div style={styles.collapseSection}>
         <div style={styles.collapseHeader} onClick={() => setExtraOpen(o => !o)}>
@@ -281,13 +364,24 @@ export default function CaseForm({
       ].map(([key, lbl, ph]) => (
         <div key={key} style={styles.field}>
           <label style={styles.label}>{lbl}</label>
-          <textarea style={styles.textarea} placeholder={ph} value={fields[key]} onChange={e => set(key, e.target.value)} />
+          <textarea
+            style={styles.textarea}
+            placeholder={ph}
+            value={fields[key]}
+            onChange={e => set(key, e.target.value)}
+          />
         </div>
       ))}
 
       <div style={styles.field}>
         <label style={styles.label}>Figma Spec</label>
-        <input style={styles.input} type="text" placeholder="Figma link or spec reference" value={fields.custom_tc_figma_spec} onChange={e => set("custom_tc_figma_spec", e.target.value)} />
+        <input
+          style={styles.input}
+          type="text"
+          placeholder="Figma link or spec reference"
+          value={fields.custom_tc_figma_spec}
+          onChange={e => set("custom_tc_figma_spec", e.target.value)}
+        />
       </div>
 
       {error && <p style={styles.error}>{error}</p>}
@@ -344,23 +438,27 @@ export default function CaseForm({
 }
 
 const styles = {
-  container: { display: "flex", flexDirection: "column", gap: "14px", paddingBottom: "72px" },
-  field: { display: "flex", flexDirection: "column", gap: "4px" },
-  label: { color: "var(--text-dim)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
-  input: { padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", outline: "none" },
-  textarea: { padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", outline: "none", minHeight: "80px", resize: "vertical", fontFamily: "sans-serif" },
-  select: { padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", cursor: "pointer" },
-  btn: { padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "var(--accent)", color: "white", fontSize: "0.9rem", cursor: "pointer", alignSelf: "flex-start" },
+  container:    { display: "flex", flexDirection: "column", gap: "14px", paddingBottom: "72px" },
+  field:        { display: "flex", flexDirection: "column", gap: "4px" },
+  label:        { color: "var(--text-dim)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
+  input:        { padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", outline: "none" },
+  textarea:     { padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", outline: "none", minHeight: "80px", resize: "vertical", fontFamily: "sans-serif" },
+  select:       { padding: "8px 12px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "var(--bg-panel)", color: "var(--text)", fontSize: "0.9rem", cursor: "pointer" },
+  btn:          { padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "var(--accent)", color: "white", fontSize: "0.9rem", cursor: "pointer", alignSelf: "flex-start" },
   btnSecondary: { padding: "10px 20px", borderRadius: "6px", border: "1px solid var(--accent)", backgroundColor: "transparent", color: "var(--accent)", fontSize: "0.9rem", cursor: "pointer" },
-  btnCancel: { padding: "10px 20px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-muted)", fontSize: "0.9rem", cursor: "pointer" },
-  btnDelete: { padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "#ef4444", color: "white", fontSize: "0.9rem", cursor: "pointer" },
-  error: { color: "#f87171", fontSize: "0.85rem" },
+  btnCancel:    { padding: "10px 20px", borderRadius: "6px", border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-muted)", fontSize: "0.9rem", cursor: "pointer" },
+  btnDelete:    { padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "#ef4444", color: "white", fontSize: "0.9rem", cursor: "pointer" },
+  btnSimulate:  { padding: "10px 20px", borderRadius: "6px", border: "1px solid #7c3aed", backgroundColor: "rgba(124,58,237,0.1)", color: "#a78bfa", fontSize: "0.9rem", cursor: "pointer", fontWeight: "600" },
+  error:        { color: "#f87171", fontSize: "0.85rem" },
   collapseSection: { border: "2px solid var(--accent)", borderRadius: "6px", overflow: "hidden", marginTop: "15px" },
-  collapseHeader: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", cursor: "pointer", backgroundColor: "var(--bg)" },
-  collapseIcon: { color: "var(--text-muted)", fontSize: "0.7rem" },
-  collapseLabel: { color: "var(--text)", fontSize: "0.85rem" },
-  collapseBody: { padding: "14px", display: "flex", flexDirection: "column", gap: "14px", borderTop: "1px solid var(--border)" },
-  stickyFooter: { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "8px", zIndex: 10 },
-  btnSimulate: { padding: "10px 20px", borderRadius: "6px", border: "1px solid #7c3aed", backgroundColor: "rgba(124,58,237,0.1)", color: "#a78bfa", fontSize: "0.9rem", cursor: "pointer", fontWeight: "600" },
+  collapseHeader:  { display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", cursor: "pointer", backgroundColor: "var(--bg)" },
+  collapseIcon:    { color: "var(--text-muted)", fontSize: "0.7rem" },
+  collapseLabel:   { color: "var(--text)", fontSize: "0.85rem" },
+  collapseBody:    { padding: "14px", display: "flex", flexDirection: "column", gap: "14px", borderTop: "1px solid var(--border)" },
+  stickyFooter:    { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "8px", zIndex: 10 },
 
+  // Demo banner
+  demoBanner:     { display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "6px", backgroundColor: "#3b82f611", border: "1px solid #3b82f630", marginBottom: "4px" },
+  demoBadge:      { fontSize: "0.65rem", fontWeight: "800", letterSpacing: "0.1em", color: "#3b82f6", backgroundColor: "#3b82f615", border: "1px solid #3b82f640", padding: "2px 6px", borderRadius: "4px", flexShrink: 0 },
+  demoBannerText: { color: "var(--text-muted)", fontSize: "0.82rem" },
 };
