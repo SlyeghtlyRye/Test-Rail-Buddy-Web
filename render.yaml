@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: testrail-buddy-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: ALLOWED_ORIGINS
+        # Set this to your Cloudflare Pages URL after deploying the frontend
+        # e.g. ["https://testrail-buddy.pages.dev"]
+        sync: false
+      - key: READ_ONLY_MODE
+        value: "false"
+      - key: SKIP_AUTH_VALIDATION
+        value: "false"
+      - key: ENABLE_REQUEST_LOGGING
+        value: "true"
+      - key: DEFAULT_PAGE_SIZE
+        value: "250"
