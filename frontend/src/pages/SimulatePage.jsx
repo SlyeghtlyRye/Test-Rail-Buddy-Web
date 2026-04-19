@@ -9,7 +9,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const ENVS = [
   { label: "Local",      url: "http://localhost:3000" },
@@ -263,6 +263,11 @@ export default function SimulatePage() {
 
   return (
     <div style={s.page}>
+
+      {/* Experimental banner */}
+      <div style={{ backgroundColor: "#78350f", color: "#fde68a", padding: "8px 16px", fontSize: "0.82rem", textAlign: "center", borderBottom: "1px solid #92400e" }}>
+        ⚠ Playwright Simulation is experimental and unfinished — behaviour may be incomplete or unreliable.
+      </div>
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (

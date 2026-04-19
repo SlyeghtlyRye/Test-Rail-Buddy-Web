@@ -16,6 +16,7 @@ A web app for browsing and bulk-editing TestRail test cases. Ported from an inte
 - Find cases with missing or thin content
 - Export cases to CSV
 - Demo mode — explore the full UI with pre-loaded data, no credentials required
+- Playwright simulation — record and replay browser sessions against a live environment *(experimental, unfinished)*
 
 ---
 
