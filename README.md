@@ -31,35 +31,55 @@ The app opens in demo mode by default. To connect to a real TestRail instance, e
 
 ## Deploy Your Own
 
-### 1. Backend → Render.com
+Both services run on [Render.com](https://render.com) — no other accounts needed.
+
+### 1. Backend → Render Web Service
 
 1. Fork this repo
-2. In [Render](https://render.com), create a **New Web Service** → connect your fork
+2. In Render, create a **New Web Service** → connect your fork
 3. Render will detect `render.yaml` and configure the service automatically
-4. After the first deploy, note your service URL (e.g. `https://testrail-buddy-api.onrender.com`)
-5. Set the `ALLOWED_ORIGINS` environment variable in Render to your Cloudflare Pages URL:
-   ```
-   ["https://your-project.pages.dev"]
-   ```
+4. After the first deploy, note your service URL (e.g. `https://your-api.onrender.com`)
 
-### 2. Frontend → Cloudflare Pages
+### 2. Frontend → Render Static Site
 
-1. In [Cloudflare Pages](https://pages.cloudflare.com), create a **New Project** → connect your fork
+1. In Render, create a **New Static Site** → connect the same fork
 2. Build settings:
-   - **Framework preset:** Vite
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
    - **Root directory:** `frontend`
+   - **Build command:** `npm run build`
+   - **Publish directory:** `dist`
 3. Add an environment variable:
    ```
-   VITE_API_URL = https://your-render-service.onrender.com
+   VITE_API_URL = https://your-api.onrender.com
    ```
-4. Deploy — Cloudflare will rebuild on every push to `main`
+4. Deploy — Render will rebuild on every push to `main`
+
+### 3. Wire CORS
+
+In your backend Web Service → **Environment**, add:
+```
+ALLOWED_ORIGINS = ["https://your-frontend.onrender.com"]
+```
+Render restarts the backend automatically.
 
 ---
 
 ## Run Locally
 
+**First-time setup** (run once after cloning):
+```powershell
+git clone https://github.com/SlyeghtlyRye/Test-Rail-Buddy-Web
+cd Test-Rail-Buddy-Web
+pip install -r requirements.txt
+cd frontend && npm install && cd ..
+```
+
+**Start the app** (run each time):
+```powershell
+.\start.ps1
+```
+Starts both services and opens the browser automatically.
+
+**Manual:**
 ```bash
 # Backend
 pip install -r requirements.txt
@@ -71,7 +91,7 @@ npm install
 npm run dev
 ```
 
-Copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL` if needed.
+Copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL` if needed. Frontend runs on `http://localhost:5173`.
 
 ---
 
