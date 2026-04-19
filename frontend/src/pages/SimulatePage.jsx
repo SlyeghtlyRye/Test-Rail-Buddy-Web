@@ -266,7 +266,7 @@ export default function SimulatePage() {
 
       {/* Experimental banner */}
       <div style={{ backgroundColor: "#78350f", color: "#fde68a", padding: "8px 16px", fontSize: "0.82rem", textAlign: "center", borderBottom: "1px solid #92400e" }}>
-        ⚠ Playwright Simulation is experimental and unfinished — behaviour may be incomplete or unreliable.
+        ⚠ Playwright Simulation is experimental and unfinished — behaviour may be incomplete or unreliable. Recording requires a local backend; run the app locally via start.ps1 for full simulation support.
       </div>
 
       {/* Delete Confirm Modal */}
