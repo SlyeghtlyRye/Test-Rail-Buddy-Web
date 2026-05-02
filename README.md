@@ -4,7 +4,7 @@ A web app for browsing and bulk-editing TestRail test cases. Ported from an inte
 
 **Stack:** React + Vite (frontend) · FastAPI + Python (backend) · Playwright (browser automation)
 
-> **Final release** — fully deployed and feature-complete as of May 2026.
+> Development closed Q2 2026.
 
 ---
 

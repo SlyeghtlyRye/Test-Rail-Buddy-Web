@@ -9,7 +9,7 @@
     number: "0.3.0",
     updated: "2026-05-01",
     notes: [
-        "Final release — fully deployed:",
+        "Development closed Q2 2026.",
         "— Demo mode: explore without a TestRail account",
         "— Backend hosted on Render.com",
         "— Frontend hosted on Render static site",
