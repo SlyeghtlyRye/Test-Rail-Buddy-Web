@@ -160,9 +160,9 @@ export default function LoginPage() {
       <p style={styles.subtitle}>Connect to your TestRail instance</p>
 
       <form onSubmit={handleLogin} style={styles.form}>
-        <input style={styles.input} type="text"     placeholder="TestRail URL" value={url}      onChange={e => setUrl(e.target.value)}      required />
-        <input style={styles.input} type="email"    placeholder="Email"        value={email}    onChange={e => setEmail(e.target.value)}    required />
-        <input style={styles.input} type="password" placeholder="Password"     value={password} onChange={e => setPassword(e.target.value)} required />
+        <input style={styles.input} type="url"      placeholder="TestRail URL" value={url}      onChange={e => setUrl(e.target.value)}      required autoComplete="url" />
+        <input style={styles.input} type="email"    placeholder="Email"        value={email}    onChange={e => setEmail(e.target.value)}    required autoComplete="username" />
+        <input style={styles.input} type="password" placeholder="Password"     value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
         {error && <p style={styles.error}>{error}</p>}
         <button style={styles.button} type="submit" disabled={loading}>
           {loading ? "Connecting..." : "Connect"}

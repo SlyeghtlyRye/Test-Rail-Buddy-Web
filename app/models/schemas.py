@@ -70,3 +70,4 @@ class ExportRequest(BaseModel):
     section_id: Optional[int] = None
     strip_html: bool = True
     include_links: bool = True
+    columns: Optional[List[str]] = None

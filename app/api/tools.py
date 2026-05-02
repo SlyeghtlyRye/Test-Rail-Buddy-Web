@@ -11,9 +11,6 @@ router = APIRouter()
 settings = get_settings()
 
 PRIORITY_MAP = {1: "Low", 2: "Medium", 3: "High", 4: "Critical"}
-ACCOUNT_TYPE_MAP = {1: "Classic", 2: "Next", 3: "Both"}
-USER_TYPE_MAP = {1: "User", 2: "Admin/Owner", 3: "CSR"}
-AUTOMATION_MAP = {1: "Not Automated", 2: "Automated", 3: "Partial"}
 
 def _client(url, email, password):
     return TestRailClient(url, email, password)
@@ -71,35 +68,35 @@ def export_cases_csv(body: ExportRequest):
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
-    headers = ["Test Case ID", "Test Name", "Title", "Priority", "Category",
-               "Account Type", "User Type", "Use Case", "Test Steps",
-               "Expected Result", "References", "Automation Status"]
-    if body.include_links:
-        headers += ["TestRail ID", "Link to Case"]
+    def make_label(key):
+        if key == "priority_id": return "Priority"
+        if key == "refs":        return "References"
+        if key == "title":       return "Title"
+        return key.replace("custom_", "").replace("_", " ").title()
 
-    def process(value):
+    def process(key, value):
+        if key == "priority_id":
+            return PRIORITY_MAP.get(value, str(value) if value is not None else "")
         if not value:
             return ""
         return TestRailClient.strip_html(str(value)) if body.strip_html else str(value)
+
+    if body.columns:
+        col_keys = body.columns
+    elif cases:
+        col_keys = ["title"] + sorted(k for k in cases[0] if k.startswith("custom_"))
+    else:
+        col_keys = ["title"]
+
+    headers = [make_label(k) for k in col_keys]
+    if body.include_links:
+        headers += ["TestRail ID", "Link to Case"]
 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(headers)
     for case in cases:
-        row = [
-            case.get("custom_tc_test_case_id", ""),
-            case.get("custom_tc_name", ""),
-            case.get("title", ""),
-            PRIORITY_MAP.get(case.get("priority_id"), ""),
-            case.get("custom_tc_category", ""),
-            ACCOUNT_TYPE_MAP.get(case.get("custom_user_type_classic_or_next"), ""),
-            USER_TYPE_MAP.get(case.get("custom_tc_user_type"), ""),
-            process(case.get("custom_tc_use_case")),
-            process(case.get("custom_steps")),
-            process(case.get("custom_expected")),
-            case.get("refs", ""),
-            AUTOMATION_MAP.get(case.get("custom_tc_automation_status"), ""),
-        ]
+        row = [process(k, case.get(k)) for k in col_keys]
         if body.include_links:
             cid = case.get("id", "")
             row += [cid, f"{body.url}/index.php?/cases/view/{cid}" if cid else ""]

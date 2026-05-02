@@ -4,7 +4,7 @@ A web app for browsing and bulk-editing TestRail test cases. Ported from an inte
 
 **Stack:** React + Vite (frontend) · FastAPI + Python (backend) · Playwright (browser automation)
 
-> **Final release** — fully deployed and feature-complete as of April 2026.
+> **Final release** — fully deployed and feature-complete as of May 2026.
 
 ---
 
@@ -104,3 +104,14 @@ npm run dev
 - The Render free tier spins down after 15 min of inactivity — expect a ~30s cold start on first request
 - Demo mode requires no backend; all data is local to the browser
 - No credentials or secrets are stored server-side; all TestRail auth is passed per-request
+
+## Field Mapping
+
+Some tools target specific custom field names by default:
+
+| Tool | Default field |
+|---|---|
+| Bulk Assign IDs | `custom_tc_test_case_id` |
+| Fix Test Names | `custom_tc_name` |
+
+These were chosen to suit a particular workflow but are not universal. If your TestRail instance uses different field names, update the references in `app/api/tools.py` to match. All other fields — including which columns appear in exports, which fields are checked for blank content, and which fields appear in the case form — are discovered dynamically from your connected instance at runtime and require no configuration.

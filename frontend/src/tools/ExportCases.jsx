@@ -86,7 +86,7 @@ function SectionPicker({ sections, rootSections, childrenMap, selectedIds, onTog
   );
 }
 
-const ALL_COLUMNS = [
+const DEMO_COLUMNS = [
   { key: "custom_tc_test_case_id", label: "Test Case ID" },
   { key: "custom_tc_name",         label: "Test Name" },
   { key: "title",                  label: "Title" },
@@ -96,16 +96,29 @@ const ALL_COLUMNS = [
   { key: "custom_expected",        label: "Expected Result" },
 ];
 
-function ExportTab({ credentials, selectedProject, selectedSuite, sections, rootSections, childrenMap, loadingSections, sectionError }) {
+function ExportTab({ credentials, selectedProject, selectedSuite, sections, rootSections, childrenMap, loadingSections, sectionError, customFields = [], customFieldsLoading = false }) {
   const isDemo = !!credentials?.demo;
-  const [selectedIds, setSelectedIds]   = useState(new Set());
-  const [stripHtml, setStripHtml]       = useState(true);
-  const [includeLinks, setIncludeLinks] = useState(true);
-  const [format, setFormat]             = useState("CSV");
-  const [selectedCols, setSelectedCols] = useState(ALL_COLUMNS.map(c => c.key));
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState("");
-  const [success, setSuccess]           = useState("");
+  const [selectedIds, setSelectedIds]         = useState(new Set());
+  const [stripHtml, setStripHtml]             = useState(true);
+  const [includeLinks, setIncludeLinks]       = useState(true);
+  const [selectedCols, setSelectedCols]       = useState([]);
+  const [loading,      setLoading]            = useState(false);
+  const [error, setError]                     = useState("");
+  const [success, setSuccess]                 = useState("");
+
+  const availableColumns = useMemo(() => {
+    if (isDemo) return DEMO_COLUMNS;
+    const standard = [
+      { key: "title",       label: "Title" },
+      { key: "priority_id", label: "Priority" },
+      { key: "refs",        label: "References" },
+    ];
+    return [...standard, ...customFields];
+  }, [isDemo, customFields]);
+
+  useEffect(() => {
+    setSelectedCols(availableColumns.map(c => c.key));
+  }, [availableColumns]);
 
   function toggleSection(sec) { setSelectedIds(prev => { const next = new Set(prev); next.has(sec.id) ? next.delete(sec.id) : next.add(sec.id); return next; }); }
   function selectAll() { setSelectedIds(new Set(sections.map(s => s.id))); }
@@ -121,7 +134,7 @@ function ExportTab({ credentials, selectedProject, selectedSuite, sections, root
         ? Object.keys(DEMO_CASES).map(Number)
         : [...selectedIds];
       const allCases = targets.flatMap(id => DEMO_CASES[id] || []);
-      const headers = selectedCols.map(k => ALL_COLUMNS.find(c => c.key === k)?.label || k);
+      const headers = selectedCols.map(k => availableColumns.find(c => c.key === k)?.label || k);
       const rows = allCases.map(c => selectedCols.map(k => `"${String(c[k] || "").replace(/"/g, '""')}"`).join(","));
       const csv = [headers.join(","), ...rows].join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
@@ -137,7 +150,7 @@ function ExportTab({ credentials, selectedProject, selectedSuite, sections, root
     try {
       const allRows = []; let headerLine = null;
       for (const secId of targets) {
-        const res = await axios.post(`${BASE_URL}/api/tools/export-csv`, { ...credentials, project_id: selectedProject.id, suite_id: selectedSuite?.id || null, section_id: secId, strip_html: stripHtml, include_links: includeLinks }, { responseType: "blob" });
+        const res = await axios.post(`${BASE_URL}/api/tools/export-csv`, { ...credentials, project_id: selectedProject.id, suite_id: selectedSuite?.id || null, section_id: secId, strip_html: stripHtml, include_links: includeLinks, columns: selectedCols }, { responseType: "blob" });
         const text  = await res.data.text();
         const lines = text.split("\n").filter(l => l.trim());
         if (!lines.length) continue;
@@ -165,8 +178,9 @@ function ExportTab({ credentials, selectedProject, selectedSuite, sections, root
       <div style={s.col}>
         <div style={s.card}>
           <div style={s.cardTitle}>Columns</div>
+          {customFieldsLoading && <div style={s.dimText}>Loading fields...</div>}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {ALL_COLUMNS.map(col => {
+            {availableColumns.map(col => {
               const on = selectedCols.includes(col.key);
               return (
                 <label key={col.key} style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "0.74rem", cursor: "pointer", userSelect: "none", transition: "all 0.15s", border: `1px solid ${on ? "var(--accent)" : "var(--border)"}`, backgroundColor: on ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "transparent", color: on ? "var(--accent)" : "var(--text-muted)", fontWeight: on ? 600 : 400 }}>
@@ -177,6 +191,8 @@ function ExportTab({ credentials, selectedProject, selectedSuite, sections, root
           </div>
         </div>
         <div style={s.card}>
+          <Toggle checked={stripHtml} onChange={setStripHtml} label="Strip HTML" hint="Remove markup from rich-text fields in the exported CSV" />
+          <Toggle checked={includeLinks} onChange={setIncludeLinks} label="Include links" hint="Append a TestRail ID and direct link column for each case" />
           {error   && <div style={s.errorBanner}>{error}</div>}
           {success && <div style={s.successBanner}>{success}</div>}
           <button style={{ ...s.actionBtn, opacity: canExport ? 1 : 0.4 }} onClick={handleExport} disabled={loading || !canExport}>
@@ -188,16 +204,47 @@ function ExportTab({ credentials, selectedProject, selectedSuite, sections, root
   );
 }
 
-const BLANK_FIELDS = [
-  { key: "custom_tc_use_case", label: "Use Case" },
-  { key: "custom_steps",       label: "Test Steps" },
-  { key: "custom_expected",    label: "Expected Result" },
+function FieldToggle({ fieldKey, label, checked, onToggle }) {
+  return (
+    <div onClick={() => onToggle(fieldKey)} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", padding: "8px 10px", borderRadius: "7px", transition: "background 0.12s", backgroundColor: checked ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent", border: `1px solid ${checked ? "var(--accent)" : "var(--border)"}` }}>
+      <div style={{ width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: checked ? "var(--accent)" : "transparent", border: `1px solid ${checked ? "var(--accent)" : "var(--border)"}`, fontSize: "0.7rem", color: "#fff" }}>{checked ? "✓" : ""}</div>
+      <span style={{ fontSize: "0.88rem", color: "var(--text)", fontWeight: checked ? 600 : 400 }}>{label}</span>
+    </div>
+  );
+}
+
+const STANDARD_TR_FIELDS = [
+  { key: "custom_preconds",          label: "Preconditions" },
+  { key: "custom_steps",             label: "Steps" },
+  { key: "custom_steps_separated",   label: "Steps (Separated)" },
+  { key: "custom_expected",          label: "Expected Result" },
+  { key: "custom_mission",           label: "Mission" },
+  { key: "custom_goals",             label: "Goals" },
 ];
 
-function FindBlankTab({ credentials, selectedProject, selectedSuite, sections, rootSections, childrenMap, loadingSections, sectionError, onOpenCase }) {
+function FindBlankTab({ credentials, selectedProject, selectedSuite, sections, rootSections, childrenMap, loadingSections, sectionError, onOpenCase, customFields = [], customFieldsLoading = false }) {
   const isDemo = !!credentials?.demo;
   const [selectedIds, setSelectedIds]               = useState(new Set());
-  const [checkedFields, setCheckedFields]           = useState(["custom_steps", "custom_expected"]);
+  const [checkedFields, setCheckedFields]           = useState([]);
+
+  const standardKeys = useMemo(() => new Set(STANDARD_TR_FIELDS.map(f => f.key)), []);
+
+  const standardFields = useMemo(() => {
+    if (isDemo) return STANDARD_TR_FIELDS;
+    return STANDARD_TR_FIELDS.filter(f => customFields.some(cf => cf.key === f.key));
+  }, [isDemo, customFields]);
+
+  const customOnlyFields = useMemo(() => {
+    if (isDemo) return [];
+    return customFields.filter(f => !standardKeys.has(f.key));
+  }, [isDemo, customFields]);
+
+  const allBlankFields = useMemo(() => [...standardFields, ...customOnlyFields], [standardFields, customOnlyFields]);
+
+  useEffect(() => {
+    const defaults = standardFields.filter(f => ["custom_steps", "custom_expected"].includes(f.key)).map(f => f.key);
+    setCheckedFields(defaults.length > 0 ? defaults : standardFields.map(f => f.key));
+  }, [standardFields]);
   const [wordCountEnabled, setWordCountEnabled]     = useState(false);
   const [wordCountThreshold, setWordCountThreshold] = useState(10);
   const [cases, setCases]                           = useState([]);
@@ -256,6 +303,22 @@ function FindBlankTab({ credentials, selectedProject, selectedSuite, sections, r
     return null;
   }
 
+  function handleExportBlanks() {
+    const fieldLabels = checkedFields.map(f => allBlankFields.find(b => b.key === f)?.label || f);
+    const headers = ["Case ID", "Title", ...fieldLabels, ...(isDemo ? [] : ["Link"])];
+    const rows = blankCases.map(c => [
+      c.custom_tc_test_case_id || `#${c.id}`,
+      `"${(c.title || "Untitled").replace(/"/g, '""')}"`,
+      ...checkedFields.map(f => getIssueLabel(c, f) || "ok"),
+      ...(isDemo ? [] : [`${credentials.url}/index.php?/cases/view/${c.id}`]),
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob) });
+    a.setAttribute("download", "blank_cases.csv");
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
   const sectionLabel = selectedIds.size === 0 ? "All" : selectedIds.size === 1 ? sections.find(s => s.id === [...selectedIds][0])?.name || "1 section" : `${selectedIds.size} sections`;
 
   return (
@@ -265,17 +328,23 @@ function FindBlankTab({ credentials, selectedProject, selectedSuite, sections, r
         <SectionPicker sections={sections} rootSections={rootSections} childrenMap={childrenMap} selectedIds={selectedIds} onToggle={toggleSection} onSelectAll={selectAll} onClearAll={clearAll} loading={loadingSections} error={sectionError} />
         <div style={s.card}>
           <div style={s.cardTitle}>Fields to Check</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {BLANK_FIELDS.map(({ key, label }) => {
-              const on = checkedFields.includes(key);
-              return (
-                <div key={key} onClick={() => toggleField(key)} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", padding: "8px 10px", borderRadius: "7px", transition: "background 0.12s", backgroundColor: on ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent", border: `1px solid ${on ? "var(--accent)" : "var(--border)"}` }}>
-                  <div style={{ width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: on ? "var(--accent)" : "transparent", border: `1px solid ${on ? "var(--accent)" : "var(--border)"}`, fontSize: "0.7rem", color: "#fff" }}>{on ? "✓" : ""}</div>
-                  <span style={{ fontSize: "0.88rem", color: "var(--text)", fontWeight: on ? 600 : 400 }}>{label}</span>
-                </div>
-              );
-            })}
-          </div>
+          {customFieldsLoading && standardFields.length === 0 && <div style={s.dimText}>Loading fields...</div>}
+          {standardFields.length > 0 && (
+            <>
+              <div style={s.fieldGroupLabel}>Standard</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {standardFields.map(({ key, label }) => <FieldToggle key={key} fieldKey={key} label={label} checked={checkedFields.includes(key)} onToggle={toggleField} />)}
+              </div>
+            </>
+          )}
+          {customOnlyFields.length > 0 && (
+            <>
+              <div style={s.fieldGroupLabel}>Custom</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {customOnlyFields.map(({ key, label }) => <FieldToggle key={key} fieldKey={key} label={label} checked={checkedFields.includes(key)} onToggle={toggleField} />)}
+              </div>
+            </>
+          )}
         </div>
         {progress && <div style={s.dimText}>{progress}</div>}
         <button style={{ ...s.actionBtn, opacity: selectedProject ? 1 : 0.4 }} onClick={handleSearch} disabled={loadingCases || !selectedProject}>
@@ -287,9 +356,16 @@ function FindBlankTab({ credentials, selectedProject, selectedSuite, sections, r
         {casesError && <div style={s.errorBanner}>{casesError}</div>}
         {searched && !loadingCases && (
           <div style={s.card}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <span style={{ fontSize: "1.5rem", fontWeight: 800, color: blankCases.length > 0 ? "#f97316" : "#22c55e" }}>{blankCases.length}</span>
-              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{blankCases.length === 1 ? "case" : "cases"} found{cases.length > 0 && ` out of ${cases.length} total`}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                <span style={{ fontSize: "1.5rem", fontWeight: 800, color: blankCases.length > 0 ? "#f97316" : "#22c55e" }}>{blankCases.length}</span>
+                <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{blankCases.length === 1 ? "case" : "cases"} found{cases.length > 0 && ` out of ${cases.length} total`}</span>
+              </div>
+              {blankCases.length > 0 && (
+                <button onClick={handleExportBlanks} style={{ padding: "5px 12px", borderRadius: "6px", border: "1px solid var(--accent)", backgroundColor: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  Export CSV
+                </button>
+              )}
             </div>
             {blankCases.length === 0 && <div style={{ fontSize: "0.88rem", color: "#22c55e" }}>All cases have the required fields filled in.</div>}
             {blankCases.map(c => {
@@ -302,7 +378,7 @@ function FindBlankTab({ credentials, selectedProject, selectedSuite, sections, r
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                     {issueFields.map(f => {
-                      const lbl  = BLANK_FIELDS.find(b => b.key === f)?.label || f;
+                      const lbl  = allBlankFields.find(b => b.key === f)?.label || f;
                       const issue = getIssueLabel(c, f);
                       const isBlank = issue === "blank";
                       return <span key={f} style={{ padding: "2px 8px", borderRadius: "12px", fontSize: "0.71rem", fontWeight: 600, backgroundColor: isBlank ? "rgba(239,68,68,0.12)" : "rgba(249,115,22,0.12)", color: isBlank ? "#ef4444" : "#f97316", border: `1px solid ${isBlank ? "rgba(239,68,68,0.3)" : "rgba(249,115,22,0.3)"}` }}>{lbl}: {issue}</span>;
@@ -327,11 +403,27 @@ export default function ExportCases({ credentials, selectedProject, selectedSuit
   const [rootSections, setRootSections]       = useState([]);
   const [loadingSections, setLoadingSections] = useState(false);
   const [sectionError, setSectionError]       = useState("");
+  const [customFields, setCustomFields]       = useState([]);
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedProject) { setSections([]); setChildrenMap({}); setRootSections([]); return; }
     loadSections();
   }, [selectedProject?.id, selectedSuite?.id]);
+
+  useEffect(() => {
+    if (isDemo || !selectedProject || !credentials) { setCustomFields([]); return; }
+    setCustomFieldsLoading(true);
+    axios.post(`${BASE_URL}/api/cases/fields`, credentials)
+      .then(res => {
+        const fields = res.data
+          .filter(f => f.system_name.startsWith("custom_") && f.is_active)
+          .map(f => ({ key: f.system_name, label: f.name }));
+        setCustomFields(fields);
+      })
+      .catch(() => setCustomFields([]))
+      .finally(() => setCustomFieldsLoading(false));
+  }, [selectedProject?.id]);
 
   async function loadSections() {
     setLoadingSections(true); setSectionError("");
@@ -356,7 +448,7 @@ export default function ExportCases({ credentials, selectedProject, selectedSuit
     setLoadingSections(false);
   }
 
-  const sharedProps = { credentials, selectedProject, selectedSuite, sections, rootSections, childrenMap, loadingSections, sectionError, onOpenCase };
+  const sharedProps = { credentials, selectedProject, selectedSuite, sections, rootSections, childrenMap, loadingSections, sectionError, onOpenCase, customFields, customFieldsLoading };
   const TABS = [{ key: "export", label: "Export Cases" }, { key: "blank", label: "Find Blank Cases" }];
 
   return (
@@ -400,4 +492,5 @@ const s = {
   spinner:       { display: "inline-block", width: "13px", height: "13px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite" },
   emptyState:    { display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 20px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "10px" },
   caseRow:       { backgroundColor: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px 14px" },
+  fieldGroupLabel: { fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--text-muted)", paddingBottom: "2px", borderBottom: "1px solid var(--border)" },
 };

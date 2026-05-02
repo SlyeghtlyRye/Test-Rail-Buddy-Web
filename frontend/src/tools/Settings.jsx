@@ -7,13 +7,19 @@
 
     const VERSION = {
     number: "0.3.0",
-    updated: "2026-04-19",
+    updated: "2026-05-01",
     notes: [
         "Final release — fully deployed:",
         "— Demo mode: explore without a TestRail account",
         "— Backend hosted on Render.com",
         "— Frontend hosted on Render static site",
         "— App Structure & Dependency Map working in production",
+        "Polish & sanitisation (May 2026):",
+        "— Dynamic field discovery: Standard + Custom sections in case forms",
+        "— Find Blank Cases and Export Columns now reflect live instance fields",
+        "— Standard TestRail fields (preconditions, steps, expected) separated from custom",
+        "— Login form browser autocomplete support added",
+        "— Removed all hardcoded instance-specific field assumptions",
     ],
     };
 
@@ -31,7 +37,7 @@
     { label: "Backend", path: "app/", desc: "FastAPI — Python" },
     { label: "API Routes", path: "app/api/", desc: "auth.py, projects.py, cases.py, tools.py" },
     { label: "Core", path: "app/core/", desc: "config.py, testrail.py" },
-    { label: "Infrastructure", path: "root/", desc: "Dockerfile, docker-compose.yml, k8s/, start.ps1" },
+    { label: "Infrastructure", path: "root/", desc: "Dockerfile, docker-compose.yml, start.ps1, render.yaml" },
     { label: "Demo Data", path: "frontend/src/demoData.js", desc: "Mock data for demo mode — projects, suites, sections, cases" },
 
     ];

@@ -1,8 +1,3 @@
-// ─────────────────────────────────────────────
-//  demoData.js  —  Mock data for Demo Mode
-//  Drop this in: frontend/src/demoData.js
-// ─────────────────────────────────────────────
-
 export const DEMO_CREDENTIALS = {
   url: "https://demo.testrail.io",
   email: "demo@example.com",

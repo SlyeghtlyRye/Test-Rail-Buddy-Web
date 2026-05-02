@@ -1,27 +1,23 @@
-// ─────────────────────────────────────────────
-//  CaseForm.jsx  —  with Demo Mode guards
-//  Drop this in: frontend/src/tools/CaseForm.jsx
-// ─────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+const STANDARD_FIELD_KEYS = [
+  "custom_preconds",
+  "custom_steps",
+  "custom_steps_separated",
+  "custom_expected",
+  "custom_mission",
+  "custom_goals",
+];
+const PINNED_TO_STANDARD_KEY = "custom_tc_use_case";
 
 const TYPE_TEXTAREA    = 3;
 const TYPE_CHECKBOX    = 5;
 const TYPE_DROPDOWN    = 6;
 const TYPE_MULTISELECT = 12;
 
-const FIXED_FIELDS = [
-  "custom_tc_test_case_id","custom_tc_name","custom_tc_category",
-  "custom_tc_use_case","custom_steps","custom_expected",
-  "custom_tc_preconditions","custom_tc_test_data","custom_tc_figma_spec",
-  "custom_preconds","custom_expected_result","custom_steps_separated",
-];
-
-// ── Demo stubs ────────────────────────────────
-// Returns an empty custom-fields list so CaseForm renders with no extra fields.
-const DEMO_FIELDS_RESPONSE = [];
 
 function parseOptions(raw) {
   if (!raw) return [];
@@ -73,7 +69,9 @@ export default function CaseForm({
 }) {
   const [fields, setFields]           = useState(null);
   const [customFields, setCustomFields] = useState([]);
-  const [extraOpen, setExtraOpen]     = useState(false);
+  const [standardOpen, setStandardOpen]         = useState(true);
+  const [extraOpen, setExtraOpen]               = useState(false);
+  const [useCasePinned, setUseCasePinned]       = useState(true);
   const [idLoading, setIdLoading]     = useState(false);
   const [idApplied, setIdApplied]     = useState(false);
 
@@ -97,7 +95,7 @@ export default function CaseForm({
     axios.post(`${BASE_URL}/api/cases/fields`, credentials)
       .then(res => {
         const custom = res.data.filter(f =>
-          f.system_name.startsWith("custom_") && f.is_active && !FIXED_FIELDS.includes(f.system_name)
+          f.system_name.startsWith("custom_") && f.is_active
         );
         setCustomFields(custom);
         const base = initialValues
@@ -117,12 +115,7 @@ export default function CaseForm({
 
   // ── Field builders ────────────────────────────────────────────────────────
   const buildDefaults = (custom) => {
-    const base = {
-      title: "", custom_tc_test_case_id: "", custom_tc_name: "",
-      custom_tc_category: "", custom_preconds: "", custom_tc_use_case: "",
-      custom_steps: "", custom_expected: "", custom_tc_test_data: "",
-      custom_tc_figma_spec: "",
-    };
+    const base = { title: "" };
     custom.forEach(f => {
       if (f.type_id === TYPE_DROPDOWN || f.type_id === TYPE_MULTISELECT) {
         const opts = parseOptions(f.configs?.[0]?.options?.items);
@@ -137,21 +130,12 @@ export default function CaseForm({
   };
 
   const buildFromExisting = (existing, custom) => {
-    const base = {
-      title:                  existing.title                  || "",
-      custom_tc_test_case_id: existing.custom_tc_test_case_id || "",
-      custom_tc_name:         existing.custom_tc_name         || "",
-      custom_tc_category:     existing.custom_tc_category     || "",
-      custom_preconds:        stripHtml(existing.custom_preconds        || ""),
-      custom_tc_use_case:     stripHtml(existing.custom_tc_use_case     || ""),
-      custom_steps:           stripHtml(existing.custom_steps           || ""),
-      custom_expected:        stripHtml(existing.custom_expected        || ""),
-      custom_tc_test_data:    stripHtml(existing.custom_tc_test_data    || ""),
-      custom_tc_figma_spec:   existing.custom_tc_figma_spec   || "",
-    };
+    const base = { title: existing.title || "" };
     custom.forEach(f => {
       const key = f.system_name;
-      base[key] = existing[key] !== undefined ? existing[key]
+      const raw = existing[key];
+      base[key] = raw !== undefined
+        ? (f.type_id === TYPE_TEXTAREA ? stripHtml(raw || "") : raw)
         : f.type_id === TYPE_CHECKBOX ? false
         : (f.type_id === TYPE_DROPDOWN || f.type_id === TYPE_MULTISELECT)
           ? (parseOptions(f.configs?.[0]?.options?.items)[0]?.id ?? "")
@@ -256,6 +240,16 @@ export default function CaseForm({
 
   if (!fields) return <p style={{ color: "var(--text-muted)" }}>Loading fields...</p>;
 
+  const pinnedUseCaseField = useCasePinned
+    ? customFields.find(f => f.system_name === PINNED_TO_STANDARD_KEY)
+    : null;
+  const standardFormFields   = customFields.filter(f => STANDARD_FIELD_KEYS.includes(f.system_name));
+  const customOnlyFormFields = customFields.filter(f =>
+    f.system_name !== "custom_tc_test_case_id" &&
+    !STANDARD_FIELD_KEYS.includes(f.system_name) &&
+    !(useCasePinned && f.system_name === PINNED_TO_STANDARD_KEY)
+  );
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={styles.container}>
@@ -300,89 +294,68 @@ export default function CaseForm({
         <input style={styles.input} type="text" placeholder="Test case title" value={fields.title} onChange={e => set("title", e.target.value)} />
       </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Test Name</label>
-        <input style={styles.input} type="text" placeholder="e.g. verify_login_success" value={fields.custom_tc_name} onChange={e => set("custom_tc_name", e.target.value)} />
-      </div>
-
-      <div style={styles.field}>
-        <label style={styles.label}>Test Case ID *</label>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            style={{ ...styles.input, flex: 1 }}
-            type="text"
-            placeholder="e.g. TC_0001"
-            value={fields.custom_tc_test_case_id}
-            onChange={e => { set("custom_tc_test_case_id", e.target.value); setIdApplied(false); }}
-          />
-          <button
-            style={{
-              ...styles.btn,
-              padding: "8px 12px", fontSize: "0.8rem", whiteSpace: "nowrap",
-              minWidth: "64px", alignSelf: "stretch",
-              backgroundColor: idApplied ? "#22c55e" : "var(--accent)",
-            }}
-            onClick={() => autoAssignId(false)}
-            disabled={!selectedSection || idLoading}
-            type="button"
-          >
-            {idLoading ? "..." : idApplied ? "↻ Auto" : "Auto"}
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.collapseSection}>
-        <div style={styles.collapseHeader} onClick={() => setExtraOpen(o => !o)}>
-          <span style={styles.collapseIcon}>{extraOpen ? "▼" : "▶"}</span>
-          <span style={styles.collapseLabel}>
-            Additional Fields ({customFields.length + 1})
-          </span>
-        </div>
-        {extraOpen && (
-          <div style={styles.collapseBody}>
-            <div style={styles.field}>
-              <label style={styles.label}>Category</label>
-              <input
-                style={styles.input}
-                type="text"
-                placeholder="e.g. Smoke, Regression"
-                value={fields.custom_tc_category}
-                onChange={e => set("custom_tc_category", e.target.value)}
-              />
-            </div>
-            {customFields.map(renderDynamicField)}
+      {/* ID field with Auto button — only shown if this field exists on the instance */}
+      {customFields.find(f => f.system_name === "custom_tc_test_case_id") && (
+        <div style={styles.field}>
+          <label style={styles.label}>Test Case ID</label>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              style={{ ...styles.input, flex: 1 }}
+              type="text"
+              placeholder="e.g. TC_0001"
+              value={fields.custom_tc_test_case_id || ""}
+              onChange={e => { set("custom_tc_test_case_id", e.target.value); setIdApplied(false); }}
+            />
+            <button
+              style={{ ...styles.btn, padding: "8px 12px", fontSize: "0.8rem", whiteSpace: "nowrap", minWidth: "64px", alignSelf: "stretch", backgroundColor: idApplied ? "#22c55e" : "var(--accent)" }}
+              onClick={() => autoAssignId(false)}
+              disabled={!selectedSection || idLoading}
+              type="button"
+            >
+              {idLoading ? "..." : idApplied ? "↻ Auto" : "Auto"}
+            </button>
           </div>
-        )}
-      </div>
-
-      {[
-        ["custom_preconds",    "Preconditions",   "Any preconditions before running this test"],
-        ["custom_tc_use_case", "Use Case",        "Describe the use case"],
-        ["custom_steps",       "Test Steps",      "Step by step instructions"],
-        ["custom_expected",    "Expected Result", "What should happen"],
-        ["custom_tc_test_data","Test Data",       "Any test data needed"],
-      ].map(([key, lbl, ph]) => (
-        <div key={key} style={styles.field}>
-          <label style={styles.label}>{lbl}</label>
-          <textarea
-            style={styles.textarea}
-            placeholder={ph}
-            value={fields[key]}
-            onChange={e => set(key, e.target.value)}
-          />
         </div>
-      ))}
+      )}
 
-      <div style={styles.field}>
-        <label style={styles.label}>Figma Spec</label>
-        <input
-          style={styles.input}
-          type="text"
-          placeholder="Figma link or spec reference"
-          value={fields.custom_tc_figma_spec}
-          onChange={e => set("custom_tc_figma_spec", e.target.value)}
-        />
-      </div>
+      {(pinnedUseCaseField || standardFormFields.length > 0) && (
+        <div style={styles.collapseSection}>
+          <div style={styles.collapseHeader} onClick={() => setStandardOpen(o => !o)}>
+            <span style={styles.collapseIcon}>{standardOpen ? "▼" : "▶"}</span>
+            <span style={styles.collapseLabel}>Standard ({(pinnedUseCaseField ? 1 : 0) + standardFormFields.length})</span>
+          </div>
+          {standardOpen && (
+            <div style={styles.collapseBody}>
+              {pinnedUseCaseField && (
+                <div style={{ position: "relative" }}>
+                  {renderDynamicField(pinnedUseCaseField)}
+                  <button
+                    type="button"
+                    title="Move to Custom section"
+                    onClick={e => { e.stopPropagation(); setUseCasePinned(false); }}
+                    style={styles.pinnedDismiss}
+                  >×</button>
+                </div>
+              )}
+              {standardFormFields.map(renderDynamicField)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {customOnlyFormFields.length > 0 && (
+        <div style={styles.collapseSection}>
+          <div style={styles.collapseHeader} onClick={() => setExtraOpen(o => !o)}>
+            <span style={styles.collapseIcon}>{extraOpen ? "▼" : "▶"}</span>
+            <span style={styles.collapseLabel}>Custom ({customOnlyFormFields.length})</span>
+          </div>
+          {extraOpen && (
+            <div style={styles.collapseBody}>
+              {customOnlyFormFields.map(renderDynamicField)}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && <p style={styles.error}>{error}</p>}
 
@@ -456,6 +429,7 @@ const styles = {
   collapseLabel:   { color: "var(--text)", fontSize: "0.85rem" },
   collapseBody:    { padding: "14px", display: "flex", flexDirection: "column", gap: "14px", borderTop: "1px solid var(--border)" },
   stickyFooter:    { position: "sticky", bottom: 0, display: "flex", gap: "10px", alignItems: "center", padding: "12px 16px", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "8px", zIndex: 10 },
+  pinnedDismiss:   { position: "absolute", top: "0", right: "0", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1rem", lineHeight: 1, padding: "2px 6px", borderRadius: "4px" },
 
   // Demo banner
   demoBanner:     { display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "6px", backgroundColor: "#3b82f611", border: "1px solid #3b82f630", marginBottom: "4px" },
