@@ -20,6 +20,39 @@ A web app for browsing and bulk-editing TestRail test cases. Ported from an inte
 
 ---
 
+## Highlights
+
+### Zero-credential demo mode
+The app ships with a complete set of mock data — projects, suites, sections, and test cases — so every feature can be explored in the browser without a TestRail account. All write operations are gated by the demo flag at the UI level, so nothing can be accidentally submitted.
+
+### One-command local start
+Cloning and running the app locally requires no manual configuration. After the one-time dependency install, `start.ps1` boots the backend, starts the frontend dev server, and opens the browser — all in a single step. Intended to be hand-off friendly for anyone unfamiliar with full-stack tooling.
+
+### Works with any TestRail instance
+Custom fields, column layouts, and form sections are all discovered at runtime by querying the connected TestRail instance. There is no hardcoded schema to match — connecting to a different organisation just works, with fields appearing automatically.
+
+### Playwright simulation
+Test flows can be recorded as JSON against a live TestRail instance and replayed on demand. The simulation engine drives a real Chromium browser via Playwright, mapping recorded actions back to the current state of the case. Requires a local backend. *(Experimental — unfinished)*
+
+### Live dependency map
+The Settings panel includes a runtime-rendered graph of the entire frontend component tree. Each node is a source file; edges show which components import which. Built without a separate tooling step — the map is generated from the live module graph inside the running app.
+
+### Self-auditing documentation
+App Structure cross-references every file in `frontend/src/` against a maintained docs index. Any file present in the source tree but absent from the index is flagged directly in the UI — so adding a new component and forgetting to document it is immediately visible without leaving the app.
+
+---
+
+## Security notes
+
+A few practices worth being aware of if you're running or sharing this:
+
+- **Credentials are never stored.** TestRail URL, email, and password are held in `sessionStorage` for the life of the browser tab and passed directly to the TestRail API per-request. They are not written to a database, log, or file anywhere in the stack.
+- **Read-only mode.** Set `READ_ONLY_MODE=true` on the backend to block all write operations at the API level. Useful if you want to demo against a real TestRail instance without any risk of edits.
+- **Recordings are gitignored.** Any Playwright session recordings stay local and are excluded from version control. Never commit a recording file — it may contain credentials or test data.
+- **CORS is explicit.** The backend will only accept requests from origins listed in `ALLOWED_ORIGINS`. Set this to your frontend URL; leaving it open is not recommended.
+
+---
+
 ## Live Demo
 
 **[https://testrail-buddy-web.onrender.com](https://testrail-buddy-web.onrender.com)**

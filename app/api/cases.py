@@ -20,8 +20,8 @@ def list_cases(body: CasesQuery):
     c = _client(body.url, body.email, body.password)
     try:
         return c.get_cases(body.project_id, body.suite_id, body.section_id, body.offset, body.limit)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
 
 @router.post("/create")
 def create_case(body: CaseCreateRequest):
@@ -35,8 +35,8 @@ def create_case(body: CaseCreateRequest):
         return c.create_case(body.section_id, data)
     except TestRailError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
 
 @router.post("/fields")
 def get_case_fields(body: ConnectionBody):
@@ -45,8 +45,8 @@ def get_case_fields(body: ConnectionBody):
         response = c.session.get(f"{c.url}/index.php?/api/v2/get_case_fields")
         response.raise_for_status()
         return response.json()
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
 
 @router.post("/bulk-ids")
 def bulk_edit_ids(body: BulkIDRequest):
@@ -91,8 +91,8 @@ def get_case(case_id: int, body: CasesQuery):
     c = _client(body.url, body.email, body.password)
     try:
         return c.get_case(case_id)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
 
 @router.post("/{case_id}/update")
 def update_case(case_id: int, body: CaseUpdateRequest):
@@ -106,8 +106,8 @@ def update_case(case_id: int, body: CaseUpdateRequest):
         return c.update_case(case_id, data)
     except TestRailError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
 
 @router.post("/{case_id}/delete")
 def delete_case(case_id: int, body: CaseUpdateRequest, permanent: bool = False):
@@ -119,5 +119,5 @@ def delete_case(case_id: int, body: CaseUpdateRequest, permanent: bool = False):
         return {"success": True, "case_id": case_id}
     except TestRailError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")

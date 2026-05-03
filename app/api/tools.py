@@ -65,8 +65,8 @@ def export_cases_csv(body: ExportRequest):
     try:
         result = c.get_cases(body.project_id, body.suite_id, body.section_id)
         cases = result["cases"]
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
 
     def make_label(key):
         if key == "priority_id": return "Priority"
