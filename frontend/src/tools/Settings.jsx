@@ -7,7 +7,7 @@
 
     const VERSION = {
     number: "0.3.0",
-    updated: "2026-05-01",
+    updated: "2026-Q2",
     notes: [
         "Development closed Q2 2026.",
         "— Demo mode: explore without a TestRail account",
