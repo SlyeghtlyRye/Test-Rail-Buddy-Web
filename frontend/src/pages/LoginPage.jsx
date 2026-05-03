@@ -15,7 +15,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const VERSION = {
   number: "0.3.0",
-  updated: "2026-04-19",
+  updated: "2026-Q2",
   notes: [
     "Final release — fully deployed:",
     "— Demo mode: explore without a TestRail account",
