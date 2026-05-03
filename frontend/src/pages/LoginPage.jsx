@@ -41,7 +41,7 @@ export default function LoginPage() {
   const [apiStatus, setApiStatus] = useState(null);
   const [apiLoading, setApiLoading] = useState(false);
 
-  const [modalSize, setModalSize] = useState({ width: 620, height: 520 });
+  const [modalSize, setModalSize] = useState({ width: 620, height: 620 });
   const dragRef = useRef(null);
   const isResizing = useRef(false);
 
