@@ -153,4 +153,4 @@ These were chosen to suit a particular workflow but are not universal. If your T
 
 ## Acknowledgements
 
-Thanks to [@pontyarora](https://github.com/pontyarora) for contributions and feedback during development.
+Thank you [@pontyarora](https://github.com/pontyarora) for contributions and feedback during development.
