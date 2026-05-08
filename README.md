@@ -148,3 +148,9 @@ Some tools target specific custom field names by default:
 | Fix Test Names | `custom_tc_name` |
 
 These were chosen to suit a particular workflow but are not universal. If your TestRail instance uses different field names, update the references in `app/api/tools.py` to match. All other fields — including which columns appear in exports, which fields are checked for blank content, and which fields appear in the case form — are discovered dynamically from your connected instance at runtime and require no configuration.
+
+---
+
+## Acknowledgements
+
+Thanks to [@pontyarora](https://github.com/pontyarora) for contributions and feedback during development.
