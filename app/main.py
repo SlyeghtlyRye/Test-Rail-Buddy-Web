@@ -8,7 +8,7 @@ settings = get_settings()
 app = FastAPI(
     title="TestRail Buddy",
     description="Web interface for viewing and editing TestRail test cases",
-    version="0.3.0",
+    version="0.3.1",
 )
 
 app.add_middleware(
@@ -29,4 +29,4 @@ app.include_router(simulate_playwright.router, prefix="/api/simulate/playwright"
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "version": "0.3.0"}
+    return {"status": "ok", "version": "0.3.1"}

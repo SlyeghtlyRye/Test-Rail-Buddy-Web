@@ -7,13 +7,15 @@ import ConvertFormat from "../tools/ConvertFormat";
 import CreateSection from "../tools/CreateSection";
 import Settings from "../tools/Settings";
 import BulkEditType from "../tools/BulkEditType";
+import BulkSetInitiative from "../tools/BulkSetInitiative";
 
 const TOOLS = [
   { id: "create_case",    label: "Create Case",        component: CreateCase },
   { id: "create_section", label: "Create Section",     component: CreateSection },
   { id: "export_cases",   label: "Export Cases",       component: ExportCases },
   { id: "bulk_edit_ids",  label: "Bulk Edit Case IDs", component: BulkEditIDs },
-  { id: "bulk_edit_type", label: "Bulk Edit Case Type", component: BulkEditType },
+  { id: "bulk_edit_type",      label: "Bulk Edit Case Type",  component: BulkEditType },
+  { id: "bulk_set_initiative", label: "Bulk Set Initiative",  component: BulkSetInitiative },
   { id: "fix_test_names", label: "Fix Test Names",     component: FixTestNames },
   { id: "convert_format", label: "Convert Format",     component: ConvertFormat },
   { id: "settings",       label: "Settings",           component: Settings },

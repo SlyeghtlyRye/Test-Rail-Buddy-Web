@@ -30,6 +30,14 @@ def list_sections(project_id: int, body: ConnectionBody, suite_id: Optional[int]
     except Exception:
         raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
     
+@router.post("/{project_id}/milestones")
+def list_milestones(project_id: int, body: ConnectionBody):
+    client = TestRailClient(body.url, body.email, body.password)
+    try:
+        return client.get_milestones(project_id)
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to communicate with TestRail")
+
 @router.post("/{project_id}/sections/create")
 def create_section(project_id: int, body: ConnectionBody, suite_id: Optional[int] = None, parent_id: Optional[int] = None, name: str = ""):
     client = TestRailClient(body.url, body.email, body.password)

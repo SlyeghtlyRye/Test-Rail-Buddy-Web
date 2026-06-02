@@ -138,6 +138,15 @@ class TestRailClient:
             self.update_case(case_id, {"is_deleted": True})
             return True
 
+    def get_milestones(self, project_id: int) -> List[Dict]:
+        response = self.session.get(
+            f"{self.url}/index.php?/api/v2/get_milestones/{project_id}"
+        )
+        response.raise_for_status()
+        data = response.json()
+        milestones = data.get("milestones", data) if isinstance(data, dict) else data
+        return milestones if isinstance(milestones, list) else []
+
     def get_case_fields(self) -> List[Dict]:
         if self._case_fields_cache is None:
             response = self.session.get(f"{self.url}/index.php?/api/v2/get_case_fields")

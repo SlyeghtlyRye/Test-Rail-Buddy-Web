@@ -6,7 +6,7 @@
     const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
     const VERSION = {
-    number: "0.3.0",
+    number: "0.3.1",
     updated: "2026-Q2",
     notes: [
         "Development closed Q2 2026.",
@@ -14,12 +14,15 @@
         "— Backend hosted on Render.com",
         "— Frontend hosted on Render static site",
         "— App Structure & Dependency Map working in production",
-        "Polish & sanitisation (May 2026):",
+        "Polish & sanitisation:",
         "— Dynamic field discovery: Standard + Custom sections in case forms",
         "— Find Blank Cases and Export Columns now reflect live instance fields",
         "— Standard TestRail fields (preconditions, steps, expected) separated from custom",
         "— Login form browser autocomplete support added",
         "— Removed all hardcoded instance-specific field assumptions",
+        "v0.3.1:",
+        "— Bulk Set Initiative tool — apply initiatives across sections with rate-limit awareness",
+        "— Already-set and template-mismatch cases skipped automatically",
     ],
     };
 
@@ -31,7 +34,7 @@
     { label: "Frontend", path: "frontend/src/", desc: "React + Vite" },
     { label: "Pages", path: "frontend/src/pages/", desc: "LoginPage.jsx, ProjectsPage.jsx" },
     { label: "Components", path: "frontend/src/components/", desc: "ToolsPanel.jsx" },
-    { label: "Tools", path: "frontend/src/tools/", desc: "CreateCase, CreateSection, ExportCases, BulkEditIDs, FixTestNames, ConvertFormat, Settings" },
+    { label: "Tools", path: "frontend/src/tools/", desc: "CreateCase, CreateSection, ExportCases, BulkEditIDs, BulkEditType, BulkSetInitiative, FixTestNames, ConvertFormat, Settings, AppStructure, DependencyMap" },
     { label: "API Calls", path: "frontend/src/api.js", desc: "All HTTP calls to backend" },
     { label: "Auth Context", path: "frontend/src/AuthContext.jsx", desc: "Credentials stored in sessionStorage" },
     { label: "Backend", path: "app/", desc: "FastAPI — Python" },

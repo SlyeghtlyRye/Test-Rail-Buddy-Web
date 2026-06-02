@@ -1,4 +1,4 @@
-# TestRail Buddy — v0.3.0
+# TestRail Buddy — v0.3.1
 
 A web app for browsing and bulk-editing TestRail test cases. Ported from an internal Tkinter desktop tool into a deployable full-stack application.
 
@@ -12,6 +12,7 @@ A web app for browsing and bulk-editing TestRail test cases. Ported from an inte
 
 - Browse TestRail projects, suites, sections, and test cases
 - Bulk assign sequential Test Case IDs to a section
+- Bulk set initiative across a section or entire suite
 - Fix test names — replace spaces with underscores, fill blanks from title
 - Find cases with missing or thin content
 - Export cases to CSV
@@ -146,6 +147,7 @@ Some tools target specific custom field names by default:
 |---|---|
 | Bulk Assign IDs | `custom_tc_test_case_id` |
 | Fix Test Names | `custom_tc_name` |
+| Bulk Set Initiative | `custom_initiative` (multi-select) |
 
 These were chosen to suit a particular workflow but are not universal. If your TestRail instance uses different field names, update the references in `app/api/tools.py` to match. All other fields — including which columns appear in exports, which fields are checked for blank content, and which fields appear in the case form — are discovered dynamically from your connected instance at runtime and require no configuration.
 

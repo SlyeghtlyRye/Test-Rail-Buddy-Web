@@ -224,10 +224,31 @@ export default function BulkEditType({ credentials, selectedProject, selectedSui
       return;
     }
     try {
-      const caseIds = [...selectedIds];
-      const settled = await Promise.allSettled(caseIds.map(id => axios.post(`${BASE_URL}/api/cases/${id}/update`, { ...credentials, fields: { type_id: Number(targetType) } })));
-      const results = settled.map((r, i) => ({ case_id: caseIds[i], ok: r.status === "fulfilled", error: r.status === "rejected" ? r.reason?.message : null }));
-      setResults({ updated: results.filter(r => r.ok).length, errors: results.filter(r => !r.ok).length, results });
+      const caseIds  = [...selectedIds];
+      const BATCH    = 5;
+      const DELAY_MS = 500;
+      const allRes   = [];
+      for (let i = 0; i < caseIds.length; i += BATCH) {
+        const chunk = caseIds.slice(i, i + BATCH);
+        setError(`Updating ${Math.min(i + BATCH, caseIds.length)} / ${caseIds.length}…`);
+        const settled = await Promise.allSettled(
+          chunk.map(async id => {
+            try {
+              return await axios.post(`${BASE_URL}/api/cases/${id}/update`, { ...credentials, fields: { type_id: Number(targetType) } });
+            } catch (err) {
+              if (err?.response?.status === 429) {
+                await new Promise(r => setTimeout(r, 3000));
+                return axios.post(`${BASE_URL}/api/cases/${id}/update`, { ...credentials, fields: { type_id: Number(targetType) } });
+              }
+              throw err;
+            }
+          })
+        );
+        allRes.push(...settled.map((r, j) => ({ case_id: chunk[j], ok: r.status === "fulfilled", error: r.status === "rejected" ? r.reason?.message : null })));
+        if (i + BATCH < caseIds.length) await new Promise(r => setTimeout(r, DELAY_MS));
+      }
+      setError("");
+      setResults({ updated: allRes.filter(r => r.ok).length, errors: allRes.filter(r => !r.ok).length, results: allRes });
       setShowPreview(false); setSelectedIds(new Set());
     } catch { setError("Bulk update failed. Please try again."); }
     setLoading(false);
